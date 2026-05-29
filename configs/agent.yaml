@@ -1,0 +1,6 @@
+method: agent
+# agent uses two LLM calls; both share these settings
+llm:
+    temperature: 0.0
+    max_tokens: 1000
+    top_p: 1.0
