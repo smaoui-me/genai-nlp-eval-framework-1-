@@ -1,5 +1,5 @@
 method: zero_shot
-prompt_path: prompts/zero_shot_ticket_extraction_v1.txt
+prompt_path: prompts/zero_shot_ticket_extraction_v2.txt
 
 llm:
     temperature: 0.0

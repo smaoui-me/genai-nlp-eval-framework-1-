@@ -1,19 +1,6 @@
-"""
-extraction_evaluator.py
-
-Shared evaluation functions for all ticket extraction methods.
-Computes accuracy and F1 for type and queue (single-label),
-micro and row-level precision/recall/F1 for tags (multi-label),
-and an evidence validity rate.
-
-All comparisons use normalized strings (lowercase, stripped, collapsed whitespace).
-"""
+"""Evaluation functions for ticket extraction predictions."""
 
 import re
-from collections import defaultdict
-from typing import Optional
-
-import pandas as pd
 from sklearn.metrics import f1_score, accuracy_score
 
 
@@ -149,10 +136,6 @@ def compute_tag_metrics(gold_tag_lists: list, pred_tag_lists: list) -> dict:
     }
 
 
-# ---------------------------------------------------------------------------
-# Evidence validity
-# ---------------------------------------------------------------------------
-
 def is_evidence_valid(evidence: str, text: str) -> bool:
     """Check whether a normalized evidence string appears in the normalized text.
 
@@ -169,16 +152,6 @@ def is_evidence_valid(evidence: str, text: str) -> bool:
 
 
 def compute_evidence_valid_rate(records: list) -> float:
-    """Compute the fraction of evidence strings that appear in ticket text.
-
-    Checks type evidence, queue evidence, and all tag evidences.
-
-    Args:
-        records: List of prediction records, each containing "text" and "prediction".
-
-    Returns:
-        evidence_valid_rate as a float in [0, 1].
-    """
     total = 0
     valid = 0
 
@@ -203,9 +176,32 @@ def compute_evidence_valid_rate(records: list) -> float:
     return round(valid / total, 4) if total > 0 else 0.0
 
 
-# ---------------------------------------------------------------------------
-# Full evaluation pipeline
-# ---------------------------------------------------------------------------
+def compute_candidate_tag_recall(records: list) -> float:
+    """Measure how often gold tags are present in the candidate shortlist."""
+    covered = 0
+    total = 0
+
+    for record in records:
+        candidate_tags = {normalize(tag) for tag in record.get("candidate_tags", [])}
+        gold_tags = {normalize(tag) for tag in record.get("gold", {}).get("tags", [])}
+        total += len(gold_tags)
+        covered += len(gold_tags & candidate_tags)
+
+    return round(covered / total, 4) if total else 0.0
+
+
+def compute_invalid_json_rate(records: list) -> float:
+    invalid = sum(1 for record in records if not record.get("json_validity", {}).get("all_json_valid", False))
+    return round(invalid / len(records), 4) if records else 0.0
+
+
+def compute_invalid_label_rate(records: list) -> float:
+    invalid = sum(
+        1
+        for record in records
+        if record.get("validation", {}).get("has_invalid_labels", False)
+    )
+    return round(invalid / len(records), 4) if records else 0.0
 
 def evaluate_predictions(records: list) -> dict:
     """Evaluate a list of prediction records and return aggregated metrics.
@@ -237,11 +233,16 @@ def evaluate_predictions(records: list) -> dict:
     queue_metrics = compute_single_label_metrics(gold_queues, pred_queues)
     tag_metrics = compute_tag_metrics(gold_tags_all, pred_tags_all)
     evidence_rate = compute_evidence_valid_rate(records)
+    candidate_tag_recall = compute_candidate_tag_recall(records)
+    invalid_json_rate = compute_invalid_json_rate(records)
+    invalid_label_rate = compute_invalid_label_rate(records)
 
     method = records[0].get("method", "unknown") if records else "unknown"
+    model = records[0].get("model", "") if records else ""
 
     return {
         "method": method,
+        "model": model,
         "n_examples": len(records),
         "type_accuracy": type_metrics["accuracy"],
         "type_macro_f1": type_metrics["macro_f1"],
@@ -253,6 +254,9 @@ def evaluate_predictions(records: list) -> dict:
         "tag_row_precision": tag_metrics["row_precision"],
         "tag_row_recall": tag_metrics["row_recall"],
         "tag_row_f1": tag_metrics["row_f1"],
+        "candidate_tag_recall": candidate_tag_recall,
+        "invalid_json_rate": invalid_json_rate,
+        "invalid_label_rate": invalid_label_rate,
         "evidence_valid_rate": evidence_rate,
     }
 
@@ -302,9 +306,13 @@ def build_error_rows(records: list) -> list:
                     "queue_correct": queue_correct,
                     "gold_tags": gold_tags,
                     "pred_tags": pred_tags,
+                    "candidate_tags": record.get("candidate_tags", []),
                     "tag_precision": tag_row["precision"],
                     "tag_recall": tag_row["recall"],
                     "tag_f1": tag_row["f1"],
+                    "json_valid": record.get("json_validity", {}).get("all_json_valid", False),
+                    "invalid_labels": record.get("validation", {}).get("invalid_labels", {}),
+                    "tags_outside_candidates": record.get("validation", {}).get("tags_outside_candidates", []),
                     "evidence_valid_rate": row_evidence_rate,
                 }
             )

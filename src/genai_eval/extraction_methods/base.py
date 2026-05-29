@@ -8,6 +8,8 @@ a standardized prediction dictionary.
 
 from abc import ABC, abstractmethod
 
+from genai_eval.prediction_validation import validate_and_clean_prediction
+
 
 class ExtractionMethod(ABC):
     """Base class for label-grounded ticket extraction methods.
@@ -25,7 +27,7 @@ class ExtractionMethod(ABC):
     name: str = "base"
 
     @abstractmethod
-    def extract(self, text: str, allowed_labels: dict) -> dict:
+    def extract(self, text: str, allowed_labels: dict, context: dict | None = None) -> dict:
         """Run extraction on a single ticket text.
 
         Args:
@@ -37,6 +39,26 @@ class ExtractionMethod(ABC):
             Prediction dict with "type", "queue", and "tags" keys.
         """
         raise NotImplementedError
+
+    def extract_record(
+        self,
+        text: str,
+        allowed_labels: dict,
+        context: dict | None = None,
+    ) -> dict:
+        """Run extraction and return a debug-friendly record."""
+        prediction = self.extract(text, allowed_labels, context=context)
+        return {
+            "raw_responses": {},
+            "parsed_output": prediction,
+            "validated_output": prediction,
+            "json_validity": {"all_json_valid": True},
+            "validation": {
+                "has_invalid_labels": False,
+                "invalid_labels": {"type": [], "queue": [], "tags": []},
+                "tags_outside_candidates": [],
+            },
+        }
 
     def validate_prediction(self, prediction: dict) -> bool:
         """Check that a prediction dict matches the required schema.
@@ -69,3 +91,20 @@ class ExtractionMethod(ABC):
                 )
 
         return True
+
+    def validate_against_labels(
+        self,
+        prediction: dict | None,
+        allowed_labels: dict,
+        candidate_tags: list[str] | None = None,
+        top_k_tags: int | None = None,
+    ) -> tuple[dict, dict]:
+        """Validate and clean a prediction using configured label spaces."""
+        cleaned, validation = validate_and_clean_prediction(
+            prediction=prediction,
+            allowed_labels=allowed_labels,
+            candidate_tags=candidate_tags,
+            top_k_tags=top_k_tags,
+        )
+        self.validate_prediction(cleaned)
+        return cleaned, validation

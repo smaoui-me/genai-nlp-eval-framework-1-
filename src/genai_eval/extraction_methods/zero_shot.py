@@ -1,61 +1,12 @@
-"""
-zero_shot.py
-
-Zero-shot ticket extraction using a single LLM prompt.
-Config is loaded from configs/zero_shot.yaml.
-"""
-
-import json
-import re
 from pathlib import Path
 
-import yaml
-
-from genai_eval.llm_client import call_llm
+from genai_eval.llm_client import call_llm, get_model_name
 from genai_eval.extraction_methods.base import ExtractionMethod
+from genai_eval.json_utils import parse_json_response
+from genai_eval.prompts import format_prompt, load_prompt_template
+from genai_eval.config_loader import load_config
 
 DEFAULT_CONFIG_PATH = Path("configs/zero_shot.yaml")
-
-
-def load_config(path: Path) -> dict:
-    """Load YAML config from disk."""
-    if not path.exists():
-        raise FileNotFoundError(f"Config not found: {path}")
-    with path.open("r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
-
-
-def load_prompt_template(path: Path) -> str:
-    """Load the prompt template from disk."""
-    if not path.exists():
-        raise FileNotFoundError(f"Prompt template not found: {path}")
-    return path.read_text(encoding="utf-8")
-
-
-def format_label_list(labels: list) -> str:
-    """Format a list of labels as a bulleted string for the prompt."""
-    return "\n".join(f"- {label}" for label in labels)
-
-
-def format_prompt(template: str, text: str, allowed_labels: dict) -> str:
-    """Fill the prompt template with ticket text and allowed labels."""
-    return template.format(
-        ticket_text=text,
-        allowed_types=format_label_list(allowed_labels["types"]),
-        allowed_queues=format_label_list(allowed_labels["queues"]),
-        allowed_tags=format_label_list(allowed_labels["tags"]),
-    )
-
-
-def parse_llm_response(response: str) -> dict:
-    """Strip markdown fences and parse JSON from the LLM response."""
-    cleaned = re.sub(r"```(?:json)?", "", response).strip().rstrip("`").strip()
-    try:
-        return json.loads(cleaned)
-    except json.JSONDecodeError as e:
-        raise ValueError(
-            f"Failed to parse LLM response as JSON: {e}\nResponse: {response!r}"
-        )
 
 
 class ZeroShotTicketExtraction(ExtractionMethod):
@@ -65,23 +16,45 @@ class ZeroShotTicketExtraction(ExtractionMethod):
 
     def __init__(self, config_path: Path = DEFAULT_CONFIG_PATH):
         self.config = load_config(config_path)
-        self.prompt_template = load_prompt_template(
-            Path(self.config["prompt_path"])
-        )
+        self.prompt_template = load_prompt_template(Path(self.config["prompt_path"]))
         self.llm_params = self.config.get("llm", {})
+        self.top_k_tags = self.config.get("extraction", {}).get("top_k_tags")
+        self.model_name = get_model_name()
 
-    def extract(self, text: str, allowed_labels: dict) -> dict:
-        """Extract type, queue, and tags using zero-shot prompting.
-
-        Args:
-            text: Ticket input text.
-            allowed_labels: Dict with keys "types", "queues", "tags".
-
-        Returns:
-            Standardized prediction dict.
-        """
-        prompt = format_prompt(self.prompt_template, text, allowed_labels)
+    def extract_record(
+        self,
+        text: str,
+        allowed_labels: dict,
+        context: dict | None = None,
+    ) -> dict:
+        candidate_tags = (context or {}).get("candidate_tags", allowed_labels.get("tags", []))
+        prompt = format_prompt(
+            self.prompt_template,
+            ticket_text=text,
+            allowed_types=allowed_labels["types"],
+            allowed_queues=allowed_labels["queues"],
+            candidate_tags=candidate_tags,
+        )
         raw_response = call_llm(prompt, **self.llm_params)
-        prediction = parse_llm_response(raw_response)
-        self.validate_prediction(prediction)
-        return prediction
+        parsed_output, json_valid, json_error = parse_json_response(raw_response)
+        validated_output, validation = self.validate_against_labels(
+            prediction=parsed_output,
+            allowed_labels=allowed_labels,
+            candidate_tags=candidate_tags,
+            top_k_tags=self.top_k_tags,
+        )
+        return {
+            "raw_responses": {"step_single": raw_response},
+            "parsed_output": parsed_output if isinstance(parsed_output, dict) else {},
+            "validated_output": validated_output,
+            "json_validity": {
+                "step_single_json_valid": json_valid,
+                "step_single_json_error": json_error,
+                "all_json_valid": json_valid,
+            },
+            "validation": validation,
+            "prompt_inputs": {"candidate_tags": candidate_tags},
+        }
+
+    def extract(self, text: str, allowed_labels: dict, context: dict | None = None) -> dict:
+        return self.extract_record(text, allowed_labels, context=context)["validated_output"]
