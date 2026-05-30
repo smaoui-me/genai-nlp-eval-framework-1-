@@ -24,23 +24,35 @@ def run_step1(prompt_template: str, text: str, llm_params: dict) -> dict:
 
 def run_step2(
     prompt_template: str,
+    text: str,
     step1_result: dict,
     allowed_labels: dict,
     llm_params: dict,
 ) -> dict:
     """Step 2: Map extracted evidence snippets to allowed labels."""
-    topic_evidence = step1_result.get("parsed_output", {}).get("topic_evidence", [])
-    topic_str = (
-        ", ".join(topic_evidence)
-        if isinstance(topic_evidence, list)
-        else str(topic_evidence)
-    )
+    parsed_step1 = step1_result.get("parsed_output", {})
+    topic_evidence = parsed_step1.get("topic_evidence", [])
+    topic_str = ", ".join(topic_evidence) if isinstance(topic_evidence, list) else str(topic_evidence)
+    product_area = parsed_step1.get("product_area", "")
+    issue_symptoms = parsed_step1.get("issue_symptoms", [])
+    impact = parsed_step1.get("impact", "")
+    request_vs_incident_cues = parsed_step1.get("request_vs_incident_cues", [])
+    candidate_generic_tags = parsed_step1.get("candidate_generic_tags", [])
+
     candidate_tags = allowed_labels.get("candidate_tags", [])
     prompt = format_prompt(
         prompt_template,
-        issue_type_evidence=step1_result.get("parsed_output", {}).get("issue_type_evidence", ""),
-        queue_evidence=step1_result.get("parsed_output", {}).get("queue_evidence", ""),
+        ticket_text=text,
+        issue_type_evidence=parsed_step1.get("issue_type_evidence", ""),
+        queue_evidence=parsed_step1.get("queue_evidence", ""),
         topic_evidence=topic_str,
+        product_area=product_area,
+        issue_symptoms=", ".join(issue_symptoms) if isinstance(issue_symptoms, list) else str(issue_symptoms),
+        impact=impact,
+        request_vs_incident_cues=", ".join(request_vs_incident_cues)
+        if isinstance(request_vs_incident_cues, list) else str(request_vs_incident_cues),
+        candidate_generic_tags=", ".join(candidate_generic_tags)
+        if isinstance(candidate_generic_tags, list) else str(candidate_generic_tags),
         allowed_types=allowed_labels["types"],
         allowed_queues=allowed_labels["queues"],
         candidate_tags=candidate_tags,
@@ -80,7 +92,7 @@ class AgentTicketExtraction(ExtractionMethod):
         step2_labels = dict(allowed_labels)
         step2_labels["candidate_tags"] = candidate_tags
         prediction = run_step2(
-            self.step2_template, step1_result, step2_labels, self.llm_params
+            self.step2_template, text, step1_result, step2_labels, self.llm_params
         )
         validated_output, validation = self.validate_against_labels(
             prediction=prediction.get("parsed_output"),

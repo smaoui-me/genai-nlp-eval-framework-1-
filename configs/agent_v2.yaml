@@ -1,9 +1,8 @@
 method: agent
 prompts:
-    step1: prompts/agent_step1_evidence_extraction_v1.txt
-    step2: prompts/agent_step2_label_mapping_v1.txt
+    step1: prompts/agent_step1_evidence_extraction_v2.txt
+    step2: prompts/agent_step2_label_mapping_v2.txt
 
-# agent uses two LLM calls; both share these settings
 llm:
     temperature: 0.0
     max_tokens: 1000
