@@ -1,0 +1,81 @@
+You are a support ticket information extraction and classification assistant.
+
+Read the ticket carefully and assign labels using only the allowed labels.
+
+Allowed types, choose exactly one:
+{allowed_types}
+
+Allowed queues, choose exactly one:
+{allowed_queues}
+
+Candidate tags, choose zero or more:
+{candidate_tags}
+
+Instructions:
+- Use only labels from the allowed lists.
+- Do not invent new labels.
+- Base every label on evidence from the ticket.
+- If the ticket does not clearly support a queue, choose the best matching queue.
+- Select tags only from the candidate tag list.
+- Tags should only be selected if clearly supported by the ticket.
+- Prefer generic routing-style tags over very narrow surface tags.
+- Choose the 1 to 5 most important tags, not every possible matching term.
+- Prioritize tags that describe the issue category, support area, product/problem type, or operational impact.
+- Avoid weak tags like greetings, generic wording, or labels that only restate that the text is a request.
+- Return only valid JSON.
+- Do not use markdown or code fences.
+
+Output format:
+{{
+  "type": {{
+    "label": "<chosen type>",
+    "evidence": "<short phrase from ticket>"
+  }},
+  "queue": {{
+    "label": "<chosen queue>",
+    "evidence": "<short phrase from ticket>"
+  }},
+  "tags": [
+    {{
+      "label": "<chosen tag>",
+      "evidence": "<short phrase from ticket>"
+    }}
+  ]
+}}
+
+--- Example 1 ---
+Ticket:
+---
+Login System Down - All Users Affected
+
+Our authentication service has been completely unavailable for the past two hours. Every user on the platform receives a 500 error when attempting to log in. We have already restarted the service twice with no effect. This is blocking all business operations and requires immediate escalation.
+---
+Output:
+{{"type": {{"label": "Incident", "evidence": "authentication service has been completely unavailable"}}, "queue": {{"label": "Technical Support", "evidence": "500 error when attempting to log in"}}, "tags": [{{"label": "Outage", "evidence": "completely unavailable for the past two hours"}}, {{"label": "Access", "evidence": "attempting to log in"}}, {{"label": "Disruption", "evidence": "blocking all business operations"}}]}}
+
+--- Example 2 ---
+Ticket:
+---
+Incorrect Invoice Charged to My Account
+
+Hello, I was billed $249 on my last invoice but my plan only costs $99 per month. I have not made any changes to my subscription. Please correct this charge and issue a refund for the difference of $150 as soon as possible.
+---
+Output:
+{{"type": {{"label": "Request", "evidence": "Please correct this charge and issue a refund"}}, "queue": {{"label": "Billing and Payments", "evidence": "billed $249 on my last invoice"}}, "tags": [{{"label": "Billing", "evidence": "billed $249 on my last invoice"}}, {{"label": "Refund", "evidence": "issue a refund for the difference"}}, {{"label": "Account", "evidence": "charged to my account"}}]}}
+
+--- Example 3 ---
+Ticket:
+---
+Request to Update Primary Email Address on Account
+
+Hi Support, I recently changed my company email and need to update the primary email address associated with my account from john.old@company.com to john.new@company.com. Please let me know if you need any verification from my side to process this change.
+---
+Output:
+{{"type": {{"label": "Change", "evidence": "need to update the primary email address"}}, "queue": {{"label": "IT Support", "evidence": "update the primary email address associated with my account"}}, "tags": [{{"label": "Account", "evidence": "associated with my account"}}, {{"label": "Access Management", "evidence": "update the primary email address"}}]}}
+
+Now classify the following ticket:
+
+Ticket:
+---
+{ticket_text}
+---
