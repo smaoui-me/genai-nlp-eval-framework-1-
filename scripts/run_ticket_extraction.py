@@ -1,9 +1,11 @@
 """
-Run ticket extraction on the evaluation dataset and save predictions plus metrics.
+run_ticket_extraction.py
+
+Orchestrates the evaluation pipeline by running specified extraction methods
+over the customer ticket dataset and computing analytical performance metrics.
 
 Usage:
-    python scripts/run_ticket_extraction.py --method zero_shot
-    python scripts/run_ticket_extraction.py --method agent_two_step --limit 20
+    python scripts/run_ticket_extraction.py --method embedding_rag --limit 50
 """
 
 import argparse
@@ -14,6 +16,7 @@ from pathlib import Path
 import pandas as pd
 from openai import APIConnectionError, APITimeoutError, InternalServerError, RateLimitError
 
+# Inject repository root src into path descriptors
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from genai_eval.extraction_methods import METHOD_REGISTRY
@@ -22,6 +25,10 @@ from genai_eval.extraction_methods.extraction_evaluator import (
     evaluate_predictions,
 )
 from genai_eval.label_candidates import build_tag_frequency, parse_tag_list, select_candidate_tags
+from genai_eval.extraction_methods.embedding_rag import EmbeddingRagTicketExtraction
+
+# Explicit runtime registration of the robust Embedding RAG method
+METHOD_REGISTRY[EmbeddingRagTicketExtraction.name] = EmbeddingRagTicketExtraction
 
 
 def load_allowed_labels(path: Path) -> dict:
@@ -37,7 +44,7 @@ def resolve_paths(args, config: dict) -> tuple[Path, Path]:
 
 def load_dataframe(path: Path) -> pd.DataFrame:
     df = pd.read_csv(path)
-    print(f"Loaded {len(df)} rows from {path}")
+    print(f"[INFO] Loaded {len(df)} records from {path}")
     return df
 
 
@@ -60,28 +67,36 @@ def get_limit(args, config: dict) -> int | None:
     return config.get("debug", {}).get("max_rows", 20)
 
 
-def build_output_paths(method_name: str, output_jsonl: str | None) -> tuple[Path, Path, Path]:
-    extraction_path = Path(
-        output_jsonl or f"results/extractions/{method_name}_ticket_extraction.jsonl"
-    )
-    scores_path = Path(f"results/evaluation/{method_name}_scores.csv")
-    errors_path = Path(f"results/evaluation/{method_name}_errors.csv")
-    return extraction_path, scores_path, errors_path
-
-
-def build_output_paths_for_run(run_name: str, output_jsonl: str | None) -> tuple[Path, Path, Path]:
-    extraction_path = Path(
-        output_jsonl or f"results/extractions/{run_name}_ticket_extraction.jsonl"
-    )
+def build_output_paths(run_name: str, output_jsonl: str | None) -> tuple[Path, Path, Path]:
+    extraction_path = Path(output_jsonl or f"results/extractions/{run_name}_ticket_extraction.jsonl")
     scores_path = Path(f"results/evaluation/{run_name}_scores.csv")
     errors_path = Path(f"results/evaluation/{run_name}_errors.csv")
     return extraction_path, scores_path, errors_path
 
 
 def validate_columns(df: pd.DataFrame, columns: dict) -> None:
-    missing = [column_name for column_name in columns.values() if column_name not in df.columns]
+    missing = [col for col in columns.values() if col not in df.columns]
     if missing:
-        raise KeyError(f"Missing dataset columns: {missing}")
+        raise KeyError(f"Missing required schema columns: {missing}")
+
+
+def _build_empty_fallback_record(exc_instance: Exception) -> dict:
+    """Helper layout to generate standardized empty boundaries on runtime exceptions."""
+    return {
+        "raw_responses": {},
+        "parsed_output": {},
+        "validated_output": {
+            "type": {"label": "", "evidence": ""},
+            "queue": {"label": "", "evidence": ""},
+            "tags": [],
+        },
+        "json_validity": {"all_json_valid": False, "runtime_error": str(exc_instance)},
+        "validation": {
+            "has_invalid_labels": False,
+            "invalid_labels": {"type": [], "queue": [], "tags": []},
+            "tags_outside_candidates": [],
+        },
+    }
 
 
 def run_extraction(
@@ -117,11 +132,7 @@ def run_extraction(
                 fallback_top_k=fallback_top_k,
             )
 
-            print(
-                f"[{row_index}/{total_rows}] ticket_id={ticket_id} "
-                f"calling {method.name} with {len(candidate_tags)} candidate tags",
-                flush=True,
-            )
+            print(f"[EXEC] [{row_index}/{total_rows}] ticket_id={ticket_id} invoking {method.name} ({len(candidate_tags)} tags)", flush=True)
 
             attempt_limits = [len(candidate_tags)]
             attempt_limits.extend(
@@ -136,11 +147,8 @@ def run_extraction(
             for attempt_index, candidate_limit in enumerate(attempt_limits, start=1):
                 attempt_candidate_tags = candidate_tags[:candidate_limit]
                 if attempt_index > 1:
-                    print(
-                        f"[{row_index}/{total_rows}] ticket_id={ticket_id} retrying "
-                        f"with {candidate_limit} candidate tags",
-                        flush=True,
-                    )
+                    print(f"[RETRY] [{row_index}/{total_rows}] ticket_id={ticket_id} context restriction down to {candidate_limit} tags", flush=True)
+                
                 try:
                     method_result = method.extract_record(
                         text=text,
@@ -154,72 +162,23 @@ def run_extraction(
                 except (InternalServerError, APIConnectionError, APITimeoutError, RateLimitError) as exc:
                     error_msg = f"{type(exc).__name__}: {exc}"
                     if attempt_index == len(attempt_limits):
-                        method_result = {
-                            "raw_responses": {},
-                            "parsed_output": {},
-                            "validated_output": {
-                                "type": {"label": "", "evidence": ""},
-                                "queue": {"label": "", "evidence": ""},
-                                "tags": [],
-                            },
-                            "json_validity": {"all_json_valid": False, "runtime_error": str(exc)},
-                            "validation": {
-                                "has_invalid_labels": False,
-                                "invalid_labels": {"type": [], "queue": [], "tags": []},
-                                "tags_outside_candidates": [],
-                            },
-                        }
+                        method_result = _build_empty_fallback_record(exc)
                         validated_output = method_result["validated_output"]
-                except Exception as exc:  # noqa: BLE001
+                except Exception as exc:
                     error_msg = f"{type(exc).__name__}: {exc}"
-                    method_result = {
-                        "raw_responses": {},
-                        "parsed_output": {},
-                        "validated_output": {
-                            "type": {"label": "", "evidence": ""},
-                            "queue": {"label": "", "evidence": ""},
-                            "tags": [],
-                        },
-                        "json_validity": {"all_json_valid": False, "runtime_error": str(exc)},
-                        "validation": {
-                            "has_invalid_labels": False,
-                            "invalid_labels": {"type": [], "queue": [], "tags": []},
-                            "tags_outside_candidates": [],
-                        },
-                    }
+                    method_result = _build_empty_fallback_record(exc)
                     validated_output = method_result["validated_output"]
                     break
 
             if error_msg and method_result is None:
-                method_result = {
-                    "raw_responses": {},
-                    "parsed_output": {},
-                    "validated_output": {
-                        "type": {"label": "", "evidence": ""},
-                        "queue": {"label": "", "evidence": ""},
-                        "tags": [],
-                    },
-                    "json_validity": {"all_json_valid": False, "runtime_error": str(exc)},
-                    "validation": {
-                        "has_invalid_labels": False,
-                        "invalid_labels": {"type": [], "queue": [], "tags": []},
-                        "tags_outside_candidates": [],
-                    },
-                }
+                method_result = _build_empty_fallback_record(RuntimeError(error_msg))
                 validated_output = method_result["validated_output"]
 
             if error_msg:
-                print(
-                    f"[{row_index}/{total_rows}] ticket_id={ticket_id} failed: {error_msg}",
-                    flush=True,
-                )
+                print(f"[ERROR] [{row_index}/{total_rows}] ticket_id={ticket_id} processing failed: {error_msg}", flush=True)
             else:
                 json_ok = method_result.get("json_validity", {}).get("all_json_valid", False)
-                print(
-                    f"[{row_index}/{total_rows}] ticket_id={ticket_id} done "
-                    f"(json_valid={json_ok}, tags={len(validated_output['tags'])})",
-                    flush=True,
-                )
+                print(f"[SUCCESS] [{row_index}/{total_rows}] ticket_id={ticket_id} finalized (json_valid={json_ok}, tags={len(validated_output['tags'])})", flush=True)
 
             record = {
                 "ticket_id": ticket_id,
@@ -245,7 +204,7 @@ def run_extraction(
             fout.write(json.dumps(record, ensure_ascii=False) + "\n")
             records.append(record)
 
-    print(f"Saved extraction records to {output_path}")
+    print(f"[INFO] Saved pipeline extraction records to {output_path}")
     return records
 
 
@@ -254,24 +213,19 @@ def save_evaluation(records: list[dict], scores_path: Path, errors_path: Path) -
     scores = evaluate_predictions(records)
     pd.DataFrame([scores]).to_csv(scores_path, index=False)
     pd.DataFrame(build_error_rows(records)).to_csv(errors_path, index=False)
-    print(f"Saved scores to {scores_path}")
-    print(f"Saved errors to {errors_path}")
+    print(f"[INFO] Evaluation metric parameters saved to {scores_path}")
+    print(f"[INFO] Validation failure records tracking metrics logs saved to {errors_path}")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run ticket extraction.")
-    parser.add_argument(
-        "--method",
-        required=True,
-        choices=list(METHOD_REGISTRY.keys()),
-        help="Extraction method to run",
-    )
-    parser.add_argument("--limit", type=int, default=None, help="Max rows to process")
-    parser.add_argument("--input", default=None, help="Optional CSV override")
-    parser.add_argument("--labels", default=None, help="Optional labels JSON override")
-    parser.add_argument("--output", default=None, help="Optional output JSONL override")
-    parser.add_argument("--config", default=None, help="Optional method config override")
-    parser.add_argument("--run-name", default=None, help="Versioned output prefix override")
+    parser = argparse.ArgumentParser(description="Run operational routing ticket extraction infrastructure pipeline.")
+    parser.add_argument("--method", required=True, choices=list(METHOD_REGISTRY.keys()), help="Extraction method strategy signature to run")
+    parser.add_argument("--limit", type=int, default=None, help="Maximum threshold configuration constraint rows to process")
+    parser.add_argument("--input", default=None, help="Optional evaluation source pipeline configuration CSV path override")
+    parser.add_argument("--labels", default=None, help="Optional routing system validation allowed categories mapping JSON path override")
+    parser.add_argument("--output", default=None, help="Optional targeted JSONL destination extraction tracking path override")
+    parser.add_argument("--config", default=None, help="Optional localized system metadata components parameter path override")
+    parser.add_argument("--run-name", default=None, help="Optional tracking output context tag prefix runtime namespace override")
     args = parser.parse_args()
 
     method_cls = METHOD_REGISTRY[args.method]
@@ -282,10 +236,10 @@ def main():
     input_path, labels_path = resolve_paths(args, config)
 
     if not input_path.exists():
-        print(f"Error: input file not found: {input_path}")
+        print(f"[CRITICAL] Operational targeted sequence routing dataset not detected: {input_path}")
         sys.exit(1)
     if not labels_path.exists():
-        print(f"Error: labels file not found: {labels_path}")
+        print(f"[CRITICAL] Evaluation routing domain specification framework tags maps schema missing: {labels_path}")
         sys.exit(1)
 
     full_df = load_dataframe(input_path)
@@ -296,10 +250,11 @@ def main():
     df = full_df.head(limit) if limit and limit > 0 else full_df.copy()
     allowed_labels = load_allowed_labels(labels_path)
     tag_frequency = build_tag_frequency(full_df[columns["gold_tags"]].tolist())
+    
     run_name = args.run_name or Path(args.config).stem if args.config else method.name
-    output_path, scores_path, errors_path = build_output_paths_for_run(run_name, args.output)
+    output_path, scores_path, errors_path = build_output_paths(run_name, args.output)
 
-    print(f"Running method `{args.method}` on {len(df)} rows")
+    print(f"[START] Initiating operational pipeline execution validation context for core method `{args.method}` processing {len(df)} active dataset instances.")
     try:
         records = run_extraction(
             df=df,
@@ -311,7 +266,7 @@ def main():
             output_path=output_path,
         )
     except KeyboardInterrupt:
-        print("\nRun interrupted by user.", flush=True)
+        print("\n[ABORT] Framework processing operational environment sequence manually terminated by user.")
         sys.exit(130)
 
     save_evaluation(records, scores_path, errors_path)
