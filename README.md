@@ -1,79 +1,90 @@
-## Data overview
+# GENAI_NLP_EVAL_FRAMEWORK_1
 
-This repository contains several customer-support ticket CSV datasets (including language-specific files in the
-`customer-support-tickets-dataset/` folder). The primary, cleaned dataset is located at
-data/dataset_tickets_clean.csv and includes fields such as subject, body, answer, type, queue, priority, language,
-version, and tag columns.
+This repository is a reusable evaluation framework for GenAI-based NLP tasks.
 
-We will primarily use data/dataset_tickets_clean.csv as the main source for experiments and evaluations.
+## Current status
 
-## Ticket extraction evaluation
+- `classification/`
+  The only implemented pipeline today. It predicts existing ticket labels:
+  `type`, `queue`, and `tags`.
+- `extraction/`
+  Placeholder for future true extraction tasks, likely NER-style.
+- `annotation/`
+  Placeholder for future LLM-assisted pre-annotation workflows.
 
-For extraction, we evaluate on `data/processed/ticket_extraction_eval.csv`. Each row contains:
+## Classification data
 
-- `ticket_id`: unique ticket identifier
-- `text`: full ticket text used as model input, which is a conctenation of the subject and body from main dataset in this format: subject + "\n\n" + body
-- `gold_type`: gold issue type
-- `gold_queue`: gold support queue
-- `gold_tags`: gold tag list
+The active classification dataset lives under `data/classification/processed/`.
 
-The allowed label space is loaded from `data/processed/ticket_allowed_labels.json`, which contains the full lists of
-valid `types`, `queues`, and `tags`.
+- `data/classification/processed/ticket_allowed_labels.json`
+  Allowed label space for `types`, `queues`, and `tags`
+- `data/classification/processed/ticket_extraction_eval.csv`
+  Evaluation dataset for the current classification task
 
-### Why we do candidate tag selection
+Note:
+- `ticket_extraction_eval.csv` keeps a legacy filename for safety
+- the implemented task is still classification, not extraction
 
-The tag inventory is large, so we do not send all tags to the LLM for every ticket. Instead, for each ticket we build
-a smaller candidate-tag list:
+## Classification pipeline
 
-- tags whose words or phrases appear in the ticket text
-- frequent tags from the dataset as fallback
-- a configurable limit, typically around 30 to 50 tags
+Implemented variants currently live under the classification task area:
 
-This keeps prompts smaller and more stable while still covering most gold tags.
+- `zero_shot`
+  One prompt predicts `type`, `queue`, and `tags`
+- `agent_two_step`
+  Step 1 extracts evidence from the ticket text, step 2 maps to labels
+- `few_shot`
+  Same prediction target with in-context examples
 
-### What the model predicts
+All active classification code should live in:
 
-For each ticket, the model predicts:
+- `configs/classification/`
+- `prompts/classification/`
+- `scripts/classification/`
+- `src/genai_eval/classification/`
+- `results/classification/`
 
-- exactly one `type`
-- exactly one `queue`
-- zero to a few `tags`
+Classification-specific retrieval or embedding/RAG logic should live in:
 
-We save a JSONL debug record per ticket with the input text, candidate tags, raw LLM response, parsed output,
-validated output, JSON validity flags, and invalid labels if any.
+- `src/genai_eval/classification/retrieval/`
 
-### Validation before scoring
+## Evaluation
 
-Predictions are validated against the allowed labels:
+The current classification evaluation compares predictions against gold labels for:
 
-- predicted `type` must be in allowed types
-- predicted `queue` must be in allowed queues
-- predicted `tags` must be in allowed tags
+- `type`
+- `queue`
+- `tags`
 
-Invalid labels are removed and flagged in the debug output rather than silently accepted.
+Reported metrics include:
 
-### Metrics
+- `type_accuracy`
+- `type_macro_f1`
+- `queue_accuracy`
+- `queue_macro_f1`
+- `tag_micro_precision`
+- `tag_micro_recall`
+- `tag_micro_f1`
+- `tag_row_precision`
+- `tag_row_recall`
+- `tag_row_f1`
+- `invalid_json_rate`
+- `invalid_label_rate`
+- `evidence_valid_rate`
 
-We score extraction at three levels:
+Classification outputs and evaluation artifacts should be written under:
 
-- `type`: accuracy and macro F1
-- `queue`: accuracy and macro F1
-- `tags`: micro precision, micro recall, and micro F1 using predicted vs. gold tag sets
+- `results/classification/`
+- `results/classification/evaluation/`
 
-We also report:
+## Run commands
 
-- `candidate_tag_recall`: how often gold tags were present in the candidate shortlist
-- `invalid_json_rate`: fraction of tickets where the model output could not be parsed as valid JSON
-- `invalid_label_rate`: fraction of tickets containing unsupported labels
-- `evidence_valid_rate`: fraction of evidence snippets that appear in the original ticket text
+Run one-row classification checks:
 
-### Error analysis outputs
+- `python scripts/classification/run_ticket_classification_with_evidence.py --method zero_shot --limit 1`
+- `python scripts/classification/run_ticket_classification_with_evidence.py --method agent_two_step --limit 1`
+- `python scripts/classification/run_ticket_classification_with_evidence.py --method few_shot --limit 1`
 
-After each run, we save:
+Compare saved classification runs:
 
-- a scores CSV with the aggregate metrics
-- an errors CSV with ticket-level mismatches for type, queue, and tags
-- a JSONL file with full per-ticket debug information
-
-For debugging and iteration, we usually run the pipeline first on a small subset such as `max_rows = 20` before
-scaling to a larger sample.
+- `python scripts/classification/compare_ticket_classification_with_evidence.py`

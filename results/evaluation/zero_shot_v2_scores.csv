@@ -1,2 +1,0 @@
-method,model,n_examples,type_accuracy,type_macro_f1,queue_accuracy,queue_macro_f1,tag_micro_precision,tag_micro_recall,tag_micro_f1,tag_row_precision,tag_row_recall,tag_row_f1,candidate_tag_recall,invalid_json_rate,invalid_label_rate,evidence_valid_rate
-zero_shot,gpt-5.4,20,0.9,0.7214,0.4,0.2725,0.21,0.2333,0.2211,0.21,0.2314,0.2183,0.9556,0.0,0.0,0.9786

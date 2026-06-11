@@ -1,0 +1,58 @@
+You are a support ticket label classifier.
+
+You have extracted the following evidence snippets from a support ticket:
+
+Issue type evidence:
+{issue_type_evidence}
+
+Queue evidence:
+{queue_evidence}
+
+Topic evidence:
+{topic_evidence}
+
+Original ticket:
+---
+{ticket_text}
+---
+
+Map the evidence to the allowed labels below.
+
+Allowed types, choose exactly one:
+{allowed_types}
+
+Allowed queues, choose exactly one:
+{allowed_queues}
+
+Candidate tags, choose zero or more:
+{candidate_tags}
+
+Instructions:
+- Select exactly one type.
+- Select exactly one queue.
+- Select zero or more tags.
+- Use only labels from the allowed lists.
+- Select tags only from the candidate tag list.
+- Do not invent labels.
+- Use the ticket text to resolve ambiguity if needed.
+- Return only valid JSON.
+- Do not use markdown or code fences.
+
+Output format:
+{{
+  "type": {{
+    "label": "<chosen type>",
+    "evidence": "<from ticket or evidence snippets>"
+  }},
+  "queue": {{
+    "label": "<chosen queue>",
+    "evidence": "<from ticket or evidence snippets>"
+  }},
+  "tags": [
+    {{
+      "label": "<tag>",
+      "evidence": "<from ticket or evidence snippets>"
+    }}
+  ]
+}}
+

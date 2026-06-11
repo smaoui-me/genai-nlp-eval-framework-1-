@@ -6,6 +6,20 @@ __pycache__/
 # C extensions
 *.so
 
+# results
+results/extractions/*
+results/evaluation/*
+results/classification/*
+results/annotation/*
+results/extraction/*
+!results/extractions/.gitkeep
+!results/evaluation/.gitkeep
+!results/classification/.gitkeep
+!results/annotation/.gitkeep
+!results/extraction/.gitkeep
+!results/classification/evaluation/
+!results/classification/evaluation/.gitkeep
+
 # Distribution / packaging
 .Python
 build/
@@ -216,3 +230,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+# Canonical project result artifacts
+results/classification/*
+results/classification/evaluation/*
+results/annotation/*
+results/extraction/*
+!results/classification/.gitkeep
+!results/classification/evaluation/
+!results/classification/evaluation/.gitkeep
+!results/annotation/.gitkeep
+!results/extraction/.gitkeep

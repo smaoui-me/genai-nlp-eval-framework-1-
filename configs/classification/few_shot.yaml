@@ -1,0 +1,31 @@
+method: few_shot
+prompt_path: prompts/classification/few_shot_ticket_extraction_v1.txt
+
+llm:
+    temperature: 0.0
+    max_tokens: 1000
+    top_p: 1.0
+    timeout: 60
+    max_retries: 2
+    retry_sleep_seconds: 2
+
+dataset:
+    input_path: data/classification/processed/ticket_extraction_eval.csv
+    labels_path: data/classification/processed/ticket_allowed_labels.json
+    columns:
+        ticket_id: ticket_id
+        text: text
+        gold_type: gold_type
+        gold_queue: gold_queue
+        gold_tags: gold_tags
+
+candidate_tags:
+    max_candidates: 40
+    fallback_top_k: 20
+    retry_candidate_limits: [25, 15]
+
+extraction:
+    top_k_tags: 5
+
+debug:
+    max_rows: 20
