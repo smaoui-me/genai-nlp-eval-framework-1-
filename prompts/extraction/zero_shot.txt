@@ -1,0 +1,23 @@
+You are performing named entity extraction.
+
+Return only one valid JSON object with this exact schema:
+{{
+  "entities": [
+    {{"text": "entity text", "type": "entity_type", "start": 0, "end": 0}}
+  ]
+}}
+
+Rules:
+- Extract entities from the sentence using token indices.
+- `start` and `end` are inclusive token positions.
+- Use only the allowed entity types listed below.
+- If there are no entities, return {{"entities": []}}.
+- Do not return markdown.
+- Do not return explanations.
+- Do not invent entity types outside the allowed list.
+
+Allowed entity types:
+{allowed_entity_types}
+
+Sentence:
+{sentence}
