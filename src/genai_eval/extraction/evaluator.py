@@ -12,18 +12,13 @@ def normalize_text(text: str) -> str:
 def strict_key(span: dict) -> tuple:
     return (
         normalize_text(span.get("text", "")),
-        str(span.get("type", "")).strip(),
         span.get("start"),
         span.get("end"),
     )
 
 
 def lenient_key(span: dict) -> tuple:
-    return (
-        normalize_text(span.get("text", "")),
-        span.get("start"),
-        span.get("end"),
-    )
+    return normalize_text(span.get("text", ""))
 
 
 def compute_prf(tp: int, fp: int, fn: int) -> dict:
@@ -64,17 +59,19 @@ def compute_entity_metrics(records: list[dict], key_fn) -> dict:
 
 
 def compute_json_valid_rate(records: list[dict]) -> float:
-    if not records:
+    applicable = [record for record in records if not record.get("json_validity", {}).get("not_applicable", False)]
+    if not applicable:
         return 0.0
-    valid = sum(1 for record in records if record.get("json_validity", {}).get("all_json_valid", False))
-    return round(valid / len(records), 4)
+    valid = sum(1 for record in applicable if record.get("json_validity", {}).get("all_json_valid", False))
+    return round(valid / len(applicable), 4)
 
 
 def compute_invalid_json_rate(records: list[dict]) -> float:
-    if not records:
+    applicable = [record for record in records if not record.get("json_validity", {}).get("not_applicable", False)]
+    if not applicable:
         return 0.0
-    invalid = sum(1 for record in records if not record.get("json_validity", {}).get("all_json_valid", False))
-    return round(invalid / len(records), 4)
+    invalid = sum(1 for record in applicable if not record.get("json_validity", {}).get("all_json_valid", False))
+    return round(invalid / len(applicable), 4)
 
 
 def compute_invalid_label_rate(records: list[dict]) -> float:
@@ -146,9 +143,9 @@ def build_error_rows(records: list[dict]) -> list[dict]:
         gold_spans = record.get("gold", {}).get("spans", [])
         pred_spans = record.get("prediction", {}).get("entities", [])
         strict_tp, strict_fp, strict_fn = match_counts(gold_spans, pred_spans, strict_key)
-        if strict_fp == 0 and strict_fn == 0 and record.get("json_validity", {}).get("all_json_valid", False):
-            continue
         strict_metrics = compute_prf(strict_tp, strict_fp, strict_fn)
+        lenient_tp, lenient_fp, lenient_fn = match_counts(gold_spans, pred_spans, lenient_key)
+        lenient_metrics = compute_prf(lenient_tp, lenient_fp, lenient_fn)
         rows.append(
             {
                 "id": record.get("id"),
@@ -158,7 +155,10 @@ def build_error_rows(records: list[dict]) -> list[dict]:
                 "strict_precision": strict_metrics["precision"],
                 "strict_recall": strict_metrics["recall"],
                 "strict_f1": strict_metrics["f1"],
-                "json_valid": record.get("json_validity", {}).get("all_json_valid", False),
+                "lenient_precision": lenient_metrics["precision"],
+                "lenient_recall": lenient_metrics["recall"],
+                "lenient_f1": lenient_metrics["f1"],
+                "json_valid": record.get("json_validity", {}).get("all_json_valid"),
                 "invalid_entities": record.get("validation", {}).get("invalid_entities", []),
             }
         )

@@ -9,7 +9,7 @@ class ExtractionMethod(ABC):
     name: str = "base"
 
     @abstractmethod
-    def extract_record(self, tokens: list[str], allowed_entity_types: list[str]) -> dict:
+    def extract_record(self, sentence: str, tokens: list[str], allowed_entity_types: list[str]) -> dict:
         raise NotImplementedError
 
     @staticmethod

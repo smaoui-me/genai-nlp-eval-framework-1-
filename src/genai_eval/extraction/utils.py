@@ -48,6 +48,28 @@ def build_spans(tokens: list[str], tag_ids: list[int], label_map: dict[int, str]
     return spans
 
 
+def build_location_spans(tokens: list[str], coarse_tag_ids: list[int], location_tag_id: int) -> list[dict]:
+    spans: list[dict] = []
+    start = None
+
+    for index, tag_id in enumerate(coarse_tag_ids + [0]):
+        is_location = tag_id == location_tag_id
+        if is_location and start is None:
+            start = index
+        elif not is_location and start is not None:
+            end = index - 1
+            spans.append(
+                {
+                    "text": " ".join(tokens[start : end + 1]),
+                    "start": start,
+                    "end": end,
+                }
+            )
+            start = None
+
+    return spans
+
+
 def normalize_span_text(text: str) -> str:
     if not isinstance(text, str):
         text = str(text) if text is not None else ""
@@ -58,5 +80,36 @@ def sentence_from_tokens(tokens: list[str]) -> str:
     return " ".join(tokens)
 
 
+def format_indexed_tokens(tokens: list[str]) -> str:
+    return "\n".join(f"{index}: {token}" for index, token in enumerate(tokens))
+
+
 def to_json_string(value) -> str:
     return json.dumps(value, ensure_ascii=False)
+
+
+def parse_freeform_entities(text: str) -> tuple[list[dict], list[dict]]:
+    entities: list[dict] = []
+    malformed_lines: list[dict] = []
+    cleaned = str(text or "").strip()
+    if not cleaned or cleaned.upper() == "NONE":
+        return entities, malformed_lines
+
+    for line in cleaned.splitlines():
+        raw_line = line.strip()
+        if not raw_line:
+            continue
+        parts = [part.strip() for part in raw_line.split("|")]
+        if len(parts) != 3:
+            malformed_lines.append({"line": raw_line, "reason": "wrong_field_count"})
+            continue
+        entity_text, start_text, end_text = parts
+        try:
+            start = int(start_text)
+            end = int(end_text)
+        except ValueError:
+            malformed_lines.append({"line": raw_line, "reason": "non_integer_indices"})
+            continue
+        entities.append({"text": entity_text, "start": start, "end": end})
+
+    return entities, malformed_lines

@@ -5,10 +5,10 @@ This repository is a reusable evaluation framework for GenAI-based NLP tasks.
 ## Current status
 
 - `classification/`
-  The only implemented pipeline today. It predicts existing ticket labels:
+  Implemented ticket label prediction pipeline. It predicts existing ticket labels:
   `type`, `queue`, and `tags`.
 - `extraction/`
-  Placeholder for future true extraction tasks, likely NER-style.
+  Implemented location-only NER-style extraction pipeline on FewNERD.
 - `annotation/`
   Placeholder for future LLM-assisted pre-annotation workflows.
 
@@ -77,6 +77,68 @@ Classification outputs and evaluation artifacts should be written under:
 - `results/classification/`
 - `results/classification/evaluation/`
 
+The extraction evaluation compares predicted location spans against gold spans on FewNERD.
+
+Reported extraction metrics include:
+
+- `strict_precision`
+- `strict_recall`
+- `strict_f1`
+- `lenient_precision`
+- `lenient_recall`
+- `lenient_f1`
+- `json_valid_rate`
+- `invalid_json_rate`
+- `invalid_label_rate`
+
+Extraction outputs and evaluation artifacts should be written under:
+
+- `results/extraction/`
+- `results/extraction/evaluation/`
+
+## Current results
+
+Latest 100-row classification results:
+
+- `zero_shot`
+  - `type_accuracy = 0.84`
+  - `queue_accuracy = 0.46`
+  - `tag_micro_f1 = 0.2695`
+  - `tag_row_f1 = 0.2679`
+  - `evidence_valid_rate = 0.9567`
+- `agent_two_step`
+  - `type_accuracy = 0.80`
+  - `queue_accuracy = 0.46`
+  - `tag_micro_f1 = 0.2453`
+  - `tag_row_f1 = 0.2471`
+  - `evidence_valid_rate = 0.9455`
+
+Interpretation:
+
+- `zero_shot` currently performs better than `agent_two_step` on `type` and `tags`
+- both methods are similar on `queue`
+- both methods are stable structurally with `invalid_json_rate = 0.0` and `invalid_label_rate = 0.0`
+
+Latest 100-row extraction results on location-only FewNERD:
+
+- `zero_shot_structured`
+  - `strict_precision = 0.7608`
+  - `strict_recall = 0.8503`
+  - `strict_f1 = 0.8030`
+  - `json_valid_rate = 1.0`
+- `zero_shot_freeform`
+  - `strict_precision = 0.7667`
+  - `strict_recall = 0.8610`
+  - `strict_f1 = 0.8111`
+  - `json_valid_rate = 0.0` because JSON is not used for this method
+
+Interpretation:
+
+- both extraction methods perform strongly on location span extraction
+- `freeform` is slightly better than `structured` on this 100-row slice
+- `strict` and `lenient` scores are identical here, which means text extraction and index assignment are aligned on the accepted predictions
+- both extraction methods are stable after switching prompts to explicit token-index supervision
+
 ## Run commands
 
 Run one-row classification checks:
@@ -88,3 +150,9 @@ Run one-row classification checks:
 Compare saved classification runs:
 
 - `python scripts/classification/compare_ticket_classification_with_evidence.py`
+
+Run extraction comparisons:
+
+- `python scripts/extraction/run_zero_shot_structured.py --limit 100`
+- `python scripts/extraction/run_zero_shot_freeform.py --limit 100`
+- `python scripts/extraction/compare.py`

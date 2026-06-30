@@ -38,6 +38,7 @@ def main() -> None:
             combined[column] = None
     output_path = eval_dir / "extraction_method_comparison.csv"
     combined[COMPARISON_COLUMNS].sort_values("strict_f1", ascending=False).to_csv(output_path, index=False)
+    print(combined[COMPARISON_COLUMNS].sort_values("strict_f1", ascending=False).to_string(index=False))
     print(f"Saved comparison to {output_path}")
 
 
