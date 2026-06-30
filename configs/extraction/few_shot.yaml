@@ -1,0 +1,25 @@
+method: few_shot
+prompt_path: prompts/extraction/few_shot.txt
+
+llm:
+    temperature: 0.0
+    max_tokens: 800
+    top_p: 1.0
+    timeout: 60
+    max_retries: 2
+    retry_sleep_seconds: 2
+
+few_shot:
+    n_examples: 3
+    examples_path: data/extraction/raw/intra/train-00000-of-00001.csv
+    seed: 42
+
+dataset:
+    input_path: data/extraction/processed/fewnerd_intra_test.csv
+    labels_path: data/extraction/processed/fewnerd_allowed_entity_types.json
+
+runtime:
+    retry_on_malformed_json: 1
+
+debug:
+    max_rows: 100
