@@ -1,5 +1,3 @@
-"""Few-shot extraction method for FewNERD."""
-
 from __future__ import annotations
 
 import json
@@ -8,27 +6,35 @@ from pathlib import Path
 import pandas as pd
 
 from genai_eval.config_loader import load_config
-from genai_eval.extraction.labels import FINE_LABELS
+from genai_eval.extraction.labels import COARSE_LABELS
 from genai_eval.extraction.methods.base import ExtractionMethod
-from genai_eval.extraction.utils import build_spans, parse_int_array, parse_token_array, sentence_from_tokens
+from genai_eval.extraction.utils import (
+    build_location_spans,
+    format_indexed_tokens,
+    parse_int_array,
+    parse_token_array,
+    sentence_from_tokens,
+)
 from genai_eval.json_utils import parse_json_response
 from genai_eval.llm_client import call_llm, get_model_name
 from genai_eval.prompts import format_prompt, load_prompt_template
 
-DEFAULT_CONFIG_PATH = Path("configs/extraction/few_shot.yaml")
+DEFAULT_CONFIG_PATH = Path("configs/extraction/few_shot_structured.yaml")
+LOCATION_TAG_ID = next(tag_id for tag_id, label in COARSE_LABELS.items() if label == "location")
 
 
 def _format_examples(examples: list[dict]) -> str:
     parts = []
     for ex in examples:
+        indexed = format_indexed_tokens(ex["tokens"])
         sentence = sentence_from_tokens(ex["tokens"])
-        output = json.dumps({"entities": ex["spans"]}, ensure_ascii=False)
-        parts.append(f"Sentence:\n{sentence}\n\nOutput:\n{output}")
+        output = json.dumps({"entities": ex["gold_entities"]}, ensure_ascii=False)
+        parts.append(f"Sentence: {sentence}\n\nToken indices:\n{indexed}\n\nOutput: {output}")
     return "\n\n---\n\n".join(parts)
 
 
-class FewShotExtractionMethod(ExtractionMethod):
-    name = "few_shot"
+class FewShotStructuredExtractionMethod(ExtractionMethod):
+    name = "few_shot_structured"
 
     def __init__(self, config_path: Path = DEFAULT_CONFIG_PATH):
         self.config = load_config(config_path)
@@ -38,7 +44,6 @@ class FewShotExtractionMethod(ExtractionMethod):
         self.model_name = get_model_name()
         few_shot_cfg = self.config.get("few_shot", {})
         self.n_examples = few_shot_cfg.get("n_examples", 3)
-        self.seed = few_shot_cfg.get("seed", 42)
         self.examples_path = Path(few_shot_cfg.get("examples_path", "data/extraction/raw/intra/train-00000-of-00001.csv"))
         self._examples: list[dict] | None = None
 
@@ -49,18 +54,23 @@ class FewShotExtractionMethod(ExtractionMethod):
         return self._examples
 
     def _load_examples(self) -> list[dict]:
-        df = pd.read_csv(self.examples_path)
-        sampled = df.sample(n=min(self.n_examples, len(df)), random_state=self.seed)
+        df = pd.read_csv(self.examples_path, nrows=1000)
         result = []
-        for _, row in sampled.iterrows():
+        for _, row in df.iterrows():
+            if len(result) >= self.n_examples:
+                break
             tokens = parse_token_array(row["tokens"])
-            fine_tags = parse_int_array(row["fine_ner_tags"])
-            spans = build_spans(tokens, fine_tags, FINE_LABELS)
-            result.append({"tokens": tokens, "spans": spans})
+            coarse_tags = parse_int_array(row["ner_tags"])
+            if len(tokens) != len(coarse_tags):
+                continue
+            gold_entities = build_location_spans(tokens, coarse_tags, LOCATION_TAG_ID)
+            if not gold_entities:
+                continue
+            result.append({"tokens": tokens, "gold_entities": gold_entities})
         return result
 
-    def extract_record(self, tokens: list[str], allowed_entity_types: list[str]) -> dict:
-        text = sentence_from_tokens(tokens)
+    def extract_record(self, sentence: str, tokens: list[str], allowed_entity_types: list[str]) -> dict:
+        indexed_tokens = format_indexed_tokens(tokens)
         examples_text = _format_examples(self.examples)
         raw_responses = {}
         parsed_output = {}
@@ -71,8 +81,8 @@ class FewShotExtractionMethod(ExtractionMethod):
         for attempt in range(1, attempts + 1):
             prompt = format_prompt(
                 self.prompt_template,
-                sentence=text,
-                allowed_entity_types=allowed_entity_types,
+                sentence=sentence,
+                indexed_tokens=indexed_tokens,
                 examples=examples_text,
             )
             raw_response = call_llm(prompt, **self.llm_params)
@@ -81,12 +91,22 @@ class FewShotExtractionMethod(ExtractionMethod):
             if json_valid:
                 break
 
+        if isinstance(parsed_output, dict):
+            entities = parsed_output.get("entities", [])
+        else:
+            entities = []
+        normalized_prediction = {
+            "entities": [
+                {"text": entity.get("text", ""), "type": "location", "start": entity.get("start"), "end": entity.get("end")}
+                for entity in entities
+                if isinstance(entity, dict)
+            ]
+        }
         validated_output, validation = self.validate_against_labels(
-            prediction=parsed_output if isinstance(parsed_output, dict) else {},
+            prediction=normalized_prediction,
             allowed_entity_types=allowed_entity_types,
             tokens=tokens,
         )
-
         return {
             "raw_responses": raw_responses,
             "parsed_output": parsed_output if isinstance(parsed_output, dict) else {},

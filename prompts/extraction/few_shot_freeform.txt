@@ -1,0 +1,24 @@
+You are an entity extraction system. Extract all location mentions from the sentence below.
+
+Here are some examples:
+
+{examples}
+
+---
+
+Now extract from this sentence:
+
+Sentence: {sentence}
+
+Token indices:
+{indexed_tokens}
+
+List each location on a new line in this format:
+text | start_index | end_index
+
+Rules:
+- `start_index` and `end_index` must be inclusive token indices from the indexed token list above
+- Do not use character positions
+- `text` must exactly match the tokens from `start_index` to `end_index`
+
+If no locations found, write: NONE
