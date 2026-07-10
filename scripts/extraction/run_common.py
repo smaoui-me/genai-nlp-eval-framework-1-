@@ -23,51 +23,68 @@ def parse_json_list(value: str):
 def run_pipeline(df: pd.DataFrame, method, output_path: Path) -> list[dict]:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     records = []
+    debug_path = output_path.parent / "debug" / f"{output_path.stem}_debug.jsonl"
+    debug_path.parent.mkdir(parents=True, exist_ok=True)
+    wrote_debug = False
     with output_path.open("w", encoding="utf-8") as fout:
-        total_rows = len(df)
-        for row_index, (_, row) in enumerate(df.iterrows(), start=1):
-            sample_id = row["id"]
-            sentence = str(row["sentence"])
-            tokens = parse_json_list(row["tokens"])
-            gold_entities = parse_json_list(row["gold_entities"])
-            print(f"[{row_index}/{total_rows}] id={sample_id} calling {method.name}", flush=True)
-            try:
-                result = method.extract_record(sentence=sentence, tokens=tokens, allowed_entity_types=ALLOWED_ENTITY_TYPES)
-                print(
-                    f"[{row_index}/{total_rows}] id={sample_id} done "
-                    f"(json_valid={result['json_validity']['all_json_valid']}, entities={len(result['validated_output']['entities'])})",
-                    flush=True,
-                )
-                error_msg = None
-            except Exception as exc:  # noqa: BLE001
-                result = {
-                    "raw_responses": {},
-                    "parsed_output": {},
-                    "validated_output": {"entities": []},
-                    "json_validity": {"all_json_valid": False, "runtime_error": str(exc)},
-                    "validation": {"has_invalid_labels": False, "invalid_entities": []},
-                }
-                error_msg = f"{type(exc).__name__}: {exc}"
-                print(f"[{row_index}/{total_rows}] id={sample_id} failed: {error_msg}", flush=True)
+        with debug_path.open("w", encoding="utf-8") as fdebug:
+            total_rows = len(df)
+            for row_index, (_, row) in enumerate(df.iterrows(), start=1):
+                sample_id = row["id"]
+                sentence = str(row["sentence"])
+                tokens = parse_json_list(row["tokens"])
+                gold_entities = parse_json_list(row["gold_entities"])
+                print(f"[{row_index}/{total_rows}] id={sample_id} calling {method.name}", flush=True)
+                try:
+                    result = method.extract_record(sentence=sentence, tokens=tokens, allowed_entity_types=ALLOWED_ENTITY_TYPES)
+                    print(
+                        f"[{row_index}/{total_rows}] id={sample_id} done "
+                        f"(json_valid={result['json_validity']['all_json_valid']}, entities={len(result['validated_output']['entities'])})",
+                        flush=True,
+                    )
+                    error_msg = None
+                except Exception as exc:  # noqa: BLE001
+                    result = {
+                        "raw_responses": {},
+                        "parsed_output": {},
+                        "validated_output": {"entities": []},
+                        "json_validity": {"all_json_valid": False, "runtime_error": str(exc)},
+                        "validation": {"has_invalid_labels": False, "invalid_entities": []},
+                    }
+                    error_msg = f"{type(exc).__name__}: {exc}"
+                    print(f"[{row_index}/{total_rows}] id={sample_id} failed: {error_msg}", flush=True)
 
-            record = {
-                "id": sample_id,
-                "method": method.name,
-                "model": getattr(method, "model_name", ""),
-                "text": sentence,
-                "gold": {"spans": gold_entities},
-                "raw_responses": result.get("raw_responses", {}),
-                "parsed_output": result.get("parsed_output", {}),
-                "prediction": result["validated_output"],
-                "validated_output": result["validated_output"],
-                "json_validity": result.get("json_validity", {}),
-                "validation": result.get("validation", {}),
-            }
-            if error_msg:
-                record["error"] = error_msg
-            fout.write(json.dumps(record, ensure_ascii=False) + "\n")
-            records.append(record)
+                record = {
+                    "id": sample_id,
+                    "method": method.name,
+                    "model": getattr(method, "model_name", ""),
+                    "text": sentence,
+                    "gold": {"spans": gold_entities},
+                    "raw_responses": result.get("raw_responses", {}),
+                    "parsed_output": result.get("parsed_output", {}),
+                    "prediction": result["validated_output"],
+                    "validated_output": result["validated_output"],
+                    "json_validity": result.get("json_validity", {}),
+                    "validation": result.get("validation", {}),
+                }
+                if "verification_debug" in result:
+                    debug_record = {
+                        "id": sample_id,
+                        "method": method.name,
+                        "model": getattr(method, "model_name", ""),
+                        "text": sentence,
+                        "gold": {"spans": gold_entities},
+                        "verification_debug": result["verification_debug"],
+                    }
+                    fdebug.write(json.dumps(debug_record, ensure_ascii=False) + "\n")
+                    wrote_debug = True
+                if error_msg:
+                    record["error"] = error_msg
+                fout.write(json.dumps(record, ensure_ascii=False) + "\n")
+                records.append(record)
     print(f"Saved extraction records to {output_path}")
+    if wrote_debug:
+        print(f"Saved verification debug records to {debug_path}")
     return records
 
 
