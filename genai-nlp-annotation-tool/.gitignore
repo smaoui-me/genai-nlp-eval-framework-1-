@@ -1,0 +1,10 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+.streamlit/secrets.toml
+data/gold_exports/*.json
+!data/gold_exports/.gitkeep
+.agents/
+.claude/

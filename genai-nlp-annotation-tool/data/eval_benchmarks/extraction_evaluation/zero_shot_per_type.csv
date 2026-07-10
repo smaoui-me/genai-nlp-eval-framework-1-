@@ -1,0 +1,15 @@
+entity_type,support,tp,fp,fn,precision,recall,f1
+building-sportsfacility,0,0,3,0,0.0,0.0,0.0
+event-other,0,0,1,0,0.0,0.0,0.0
+location-GPE,22,8,0,14,1.0,0.3636,0.5333
+location-bodiesofwater,1,0,0,1,0.0,0.0,0.0
+location-island,3,3,0,0,1.0,1.0,1.0
+location-star,11,0,0,11,0.0,0.0,0.0
+organization-company,5,0,5,5,0.0,0.0,0.0
+organization-education,2,0,0,2,0.0,0.0,0.0
+organization-government/governmentagency,0,0,3,0,0.0,0.0,0.0
+organization-media/newspaper,0,0,1,0,0.0,0.0,0.0
+organization-other,3,0,0,3,0.0,0.0,0.0
+organization-religion,2,0,2,2,0.0,0.0,0.0
+organization-showorganization,5,0,0,5,0.0,0.0,0.0
+organization-sportsteam,0,0,2,0,0.0,0.0,0.0
