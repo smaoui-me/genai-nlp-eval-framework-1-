@@ -1,0 +1,20 @@
+You are an entity extraction system. Extract all mentions of the following entity types from the sentence below.
+
+Allowed entity types:
+{labels}
+
+Sentence: {sentence}
+
+Token indices:
+{indexed_tokens}
+
+List each entity on a new line in this format:
+text | type | start_index | end_index
+
+Rules:
+- `type` must be exactly one of the allowed entity types listed above
+- `start_index` and `end_index` must be inclusive token indices from the indexed token list above
+- Do not use character positions
+- `text` must exactly match the tokens from `start_index` to `end_index`
+
+If no entities are found, write: NONE

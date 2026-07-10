@@ -1,9 +1,9 @@
-method: few_shot
-prompt_path: prompts/extraction/few_shot.txt
+method: few_shot_structured
+prompt_path: prompts/extraction/few_shot_structured.txt
 
 llm:
     temperature: 0.0
-    max_tokens: 800
+    max_tokens: 600
     top_p: 1.0
     timeout: 60
     max_retries: 2
@@ -12,11 +12,10 @@ llm:
 few_shot:
     n_examples: 3
     examples_path: data/extraction/raw/intra/train-00000-of-00001.csv
-    seed: 42
 
 dataset:
-    input_path: data/extraction/processed/fewnerd_intra_test.csv
-    labels_path: data/extraction/processed/fewnerd_allowed_entity_types.json
+    input_path: data/extraction/processed/fewnerd_location_test_500.csv
+    labels_path: null
 
 runtime:
     retry_on_malformed_json: 1
