@@ -1,0 +1,48 @@
+% ============================================================================
+% 5 DATA
+% ============================================================================
+\section{Data}
+\label{sec:data}
+
+No confidential industrial ticket or service-report data is used. The public
+datasets test mechanics and establish baselines; they do not substitute for an
+evaluation on the deployment organization's own distribution.
+
+\paragraph{Synthetic support tickets.}
+The multilingual customer-support collection \citep{bueck2024tickets} contains
+English and German synthetic emails with provided routing fields. Our processed
+table has 24{,}743 rows; experiments use a fixed first slice of 1{,}000. The
+label spaces contain 4 ticket types, 10 queues, and 1{,}129 observed tag strings.
+The tags deliberately remain noisy, including case variants, misspellings and
+comma-joined values. These are dataset-provided reference labels, not expert
+annotations from the intended deployment, so results measure reproduction of
+this synthetic labeling policy.
+
+\paragraph{Few-NERD.}
+Few-NERD \citep{ding2021fewnerd} contains 188{,}238 Wikipedia sentences with 8
+coarse and 66 fine types. We use a deterministic 1{,}000-sentence location-only
+slice from the intra test split for the directly comparable few-shot runs.
+Token-level reference spans make it a useful regression test for prompt parsing
+and offset reconstruction, although isolated Wikipedia sentences do not test
+document-scale execution.
+
+\paragraph{SciREX.}
+SciREX \citep{jain2020scirex} provides complete tokenized scientific papers with
+Method, Task, Metric and Dataset/Material mention spans, created through a
+combination of automatic and human annotation. The release used here contains
+438 documents, 120{,}432 sentences and 156{,}931 mention spans. Preprocessing
+detokenizes each document deterministically, converts exclusive token offsets
+to validated half-open character offsets, and preserves the original
+train/development/test split.
+
+From these papers we construct 1{,}000 contiguous same-document windows, 250 in
+each bucket: short (1--10 sentences), medium (11--50), long (51--200), and very
+long (at least 201). Sentence order is never randomized. Windows from a paper
+may overlap by at most 50\%, so \code{doc\_id} must be retained for splitting
+and uncertainty estimation. The full benchmark contains 109{,}138 gold mentions
+and is available as linked example, sentence and entity CSV tables. The
+completed 100-paper operational subset contains 25 unique training papers per
+bucket, 8{,}373 sentences and 9{,}901 mentions. The fresh held-out confirmation
+contains 20 different official-test papers, 1{,}633 sentences and 2{,}359
+mentions. The configured 1{,}000-window run remains prepared but was not
+completed and is therefore not reported as an empirical result.

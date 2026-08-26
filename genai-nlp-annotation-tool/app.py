@@ -25,11 +25,11 @@ if st.session_state.labels is None:
 # st.Page describes one page: which file holds it, its title, its icon.
 page_home = st.Page("pages/0_home.py", title="Home", icon=":material/home:", default=True)
 page_annotate = st.Page("pages/1_annotate.py", title="Annotate", icon=":material/edit_note:")
-page_extraction_eval = st.Page(
-    "pages/2_extraction_evaluation.py", title="Extraction Method Evaluation", icon=":material/query_stats:"
-)
 page_annotation_eval = st.Page(
-    "pages/3_annotation_evaluation.py", title="Annotation Evaluation", icon=":material/fact_check:"
+    "pages/2_annotation_evaluation.py", title="Annotation Evaluation", icon=":material/fact_check:"
+)
+page_model_comparison = st.Page(
+    "pages/3_model_comparison.py", title="Model Comparison", icon=":material/compare_arrows:"
 )
 
 # Builds the sidebar menu, grouped under these section headers ("" = no header).
@@ -37,7 +37,7 @@ pg = st.navigation(
     {
         "": [page_home],
         "Workflow": [page_annotate],
-        "Evaluation": [page_extraction_eval, page_annotation_eval],
+        "Evaluation": [page_annotation_eval, page_model_comparison],
     }
 )
 

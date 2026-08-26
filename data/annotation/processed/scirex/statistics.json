@@ -1,0 +1,138 @@
+{
+  "benchmark_count_by_bucket": {
+    "long": 250,
+    "medium": 250,
+    "short": 250,
+    "very_long": 250
+  },
+  "benchmark_count_by_source_split": {
+    "dev": 147,
+    "test": 155,
+    "train": 698
+  },
+  "buckets": {
+    "long": {
+      "characters": {
+        "max": 26115,
+        "mean": 11853.72,
+        "median": 11406.0,
+        "min": 3110
+      },
+      "count": 250,
+      "entity_count": 34940,
+      "sentences": {
+        "max": 199,
+        "mean": 106.908,
+        "median": 98.5,
+        "min": 51
+      },
+      "zero_entity_windows": 0
+    },
+    "medium": {
+      "characters": {
+        "max": 11298,
+        "mean": 3241.52,
+        "median": 3052.5,
+        "min": 219
+      },
+      "count": 250,
+      "entity_count": 9938,
+      "sentences": {
+        "max": 50,
+        "mean": 27.66,
+        "median": 26.0,
+        "min": 11
+      },
+      "zero_entity_windows": 2
+    },
+    "short": {
+      "characters": {
+        "max": 1689,
+        "mean": 617.688,
+        "median": 570.0,
+        "min": 2
+      },
+      "count": 250,
+      "entity_count": 1862,
+      "sentences": {
+        "max": 10,
+        "mean": 5.312,
+        "median": 5.0,
+        "min": 1
+      },
+      "zero_entity_windows": 20
+    },
+    "very_long": {
+      "characters": {
+        "max": 30636,
+        "mean": 21754.36,
+        "median": 21722.0,
+        "min": 10150
+      },
+      "count": 250,
+      "entity_count": 62398,
+      "sentences": {
+        "max": 201,
+        "mean": 201,
+        "median": 201.0,
+        "min": 201
+      },
+      "zero_entity_windows": 0
+    }
+  },
+  "candidate_report": {
+    "long": {
+      "eligible_documents": 438,
+      "selected": 250,
+      "target": 250
+    },
+    "medium": {
+      "eligible_documents": 438,
+      "selected": 250,
+      "target": 250
+    },
+    "short": {
+      "eligible_documents": 438,
+      "selected": 250,
+      "target": 250
+    },
+    "very_long": {
+      "eligible_documents": 355,
+      "selected": 250,
+      "target": 250
+    }
+  },
+  "observed_entity_labels": {
+    "Material": 10615,
+    "Method": 98458,
+    "Metric": 15332,
+    "Task": 32526
+  },
+  "overlap": {
+    "maximum_overlap_ratio": 0.5,
+    "mean_overlap_ratio_when_overlapping": 0.315052,
+    "overlapping_window_pairs": 209
+  },
+  "raw_document_count_by_split": {
+    "dev": 66,
+    "test": 66,
+    "train": 306
+  },
+  "raw_entity_count": 156931,
+  "raw_section_count": 9542,
+  "raw_sentence_count": 120432,
+  "raw_token_count": 2487091,
+  "source_document_sentence_length": {
+    "max": 736,
+    "mean": 274.959,
+    "median": 261.5,
+    "min": 75
+  },
+  "total_raw_document_count": 438,
+  "unique_source_doc_id_count": 438,
+  "windows_per_source_document": {
+    "1": 2,
+    "2": 310,
+    "3": 126
+  }
+}

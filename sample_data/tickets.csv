@@ -1,0 +1,4 @@
+ticket_id,title,text
+TCK-1001,VPN unavailable,"Maya Chen cannot connect to the corporate VPN after resetting her password on 12 August 2026. The client shows error VPN-401. Please restore access before 15:00."
+TCK-1002,Duplicate invoice,"Northwind Labs reports that account AC-88421 was charged twice for invoice INV-2026-193. The customer requests a refund of the duplicate payment."
+TCK-1003,Analytics outage,"The Orion Analytics dashboard has been unavailable since 08:30 UTC and displays error 503. This blocks the operations team from producing its daily report and requires urgent investigation."

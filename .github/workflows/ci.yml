@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build test image
+        run: docker build --target test -t genai-nlp-eval-framework:test .
+      - name: Run network-free tests
+        run: docker run --rm genai-nlp-eval-framework:test
+      - name: Build runtime image
+        run: docker build --target runtime -t genai-nlp-annotation-tool:ci .
+      - name: Build evaluation image
+        run: docker build --target evaluation -t genai-nlp-eval-framework:ci .

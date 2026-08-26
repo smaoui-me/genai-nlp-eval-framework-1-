@@ -1,0 +1,23 @@
+.git
+.github
+.devcontainer/*
+!.devcontainer/devcontainer.json
+.env
+.env.*
+!.env.example
+**/.streamlit/secrets.toml
+.venv
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/*.pyc
+
+# The product image uses compact fixtures and bundled benchmark summaries only.
+/customer-support-tickets-dataset
+/data
+/eval
+/results
+/docs
+
+# Local review output is mounted at runtime.
+/genai-nlp-annotation-tool/data/gold_exports/*.json

@@ -1,0 +1,70 @@
+services:
+  annotation-tool:
+    build:
+      context: .
+      target: "${ANNOTATION_TARGET:-runtime-embeddings}"
+    image: genai-nlp-annotation-tool:local
+    init: true
+    ports:
+      - "${APP_PORT:-8501}:8501"
+    environment:
+      LLM_ENDPOINT: "${LLM_ENDPOINT:-}"
+      LLM_API_KEY: "${LLM_API_KEY:-}"
+      LLM_DEPLOYMENT_NAME: "${LLM_DEPLOYMENT_NAME:-}"
+      OLLAMA_ENDPOINT: "${OLLAMA_ENDPOINT:-http://host.docker.internal:11434/v1}"
+      OLLAMA_MODELS: "${OLLAMA_MODELS:-qwen3:4b}"
+      HF_HOME: /home/appuser/.cache/huggingface
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./genai-nlp-annotation-tool/data/gold_exports:/workspace/genai-nlp-annotation-tool/data/gold_exports
+      - ./data/classification/retrieval:/workspace/data/classification/retrieval
+      - embedding-model-cache:/home/appuser/.cache/huggingface
+    restart: unless-stopped
+
+  evaluation:
+    profiles: ["tools"]
+    build:
+      context: .
+      target: evaluation
+    image: genai-nlp-eval-framework:local
+    environment:
+      LLM_ENDPOINT: "${LLM_ENDPOINT:-}"
+      LLM_API_KEY: "${LLM_API_KEY:-}"
+      LLM_DEPLOYMENT_NAME: "${LLM_DEPLOYMENT_NAME:-}"
+    volumes:
+      - ./data:/workspace/data
+      - ./eval:/workspace/eval
+      - ./results:/workspace/results
+
+  test:
+    profiles: ["test"]
+    build:
+      context: .
+      target: test
+    image: genai-nlp-eval-framework:test
+    environment:
+      LLM_ENDPOINT: ""
+      LLM_API_KEY: ""
+      LLM_DEPLOYMENT_NAME: ""
+    command: ["python", "-m", "pytest", "-q"]
+
+  embeddings:
+    profiles: ["embeddings"]
+    build:
+      context: .
+      target: embeddings
+    image: genai-nlp-eval-framework:embeddings
+    environment:
+      LLM_ENDPOINT: "${LLM_ENDPOINT:-}"
+      LLM_API_KEY: "${LLM_API_KEY:-}"
+      LLM_DEPLOYMENT_NAME: "${LLM_DEPLOYMENT_NAME:-}"
+      HF_HOME: /home/appuser/.cache/huggingface
+    volumes:
+      - ./data:/workspace/data
+      - ./eval:/workspace/eval
+      - ./results:/workspace/results
+      - embedding-model-cache:/home/appuser/.cache/huggingface
+
+volumes:
+  embedding-model-cache:

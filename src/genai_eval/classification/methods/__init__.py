@@ -4,6 +4,7 @@ Classification-with-evidence method registry.
 
 from genai_eval.classification.methods.agent import AgentHierarchyAwareClassification
 from genai_eval.classification.methods.base import EvidenceClassificationMethod
+from genai_eval.classification.methods.embedding_rag import EmbeddingRagEvidenceClassification
 from genai_eval.classification.methods.few_shot import FewShotEvidenceClassification
 from genai_eval.classification.methods.zero_shot import ZeroShotEvidenceClassification
 
@@ -13,5 +14,5 @@ METHOD_REGISTRY = {
     AgentHierarchyAwareClassification.name: AgentHierarchyAwareClassification,
     "agent": AgentHierarchyAwareClassification,
     FewShotEvidenceClassification.name: FewShotEvidenceClassification,
+    EmbeddingRagEvidenceClassification.name: EmbeddingRagEvidenceClassification,
 }
-

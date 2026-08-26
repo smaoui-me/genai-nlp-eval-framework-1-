@@ -1,0 +1,46 @@
+% ============================================================================
+% 3 PROBLEM STATEMENT AND RESEARCH QUESTIONS
+% ============================================================================
+\section{Problem Statement and Research Questions}
+\label{sec:problem}
+
+An organization can obtain plausible extraction and classification output from
+a general LLM without training a task-specific model. Plausibility is not an
+accuracy measure, however, and the organization usually lacks reference labels
+for exactly the documents it wants to process. It must therefore solve two
+linked engineering problems: evaluate a proposed method on representative
+data, and create trustworthy annotations without making experts label every
+document from scratch. Long documents add operational concerns---call volume,
+partial failures, offset reconstruction and resumability---that short benchmark
+sentences conceal.
+
+We address the following questions:
+
+\begin{description}[leftmargin=1.7cm, style=nextline, font=\bfseries, itemsep=1pt]
+    \item[RQ1] How accurately and reliably does a training-free LLM reproduce
+        reference labels for ticket classification and span extraction, under
+        strict structural and semantic validation?
+    \item[RQ2] How well does schema-guided pre-annotation localize Method,
+        Task, Metric and Dataset mentions in coherent SciREX text using
+        sentence-local predictions, and how does performance change from short
+        to very long document windows?
+    \item[RQ3] Can one reusable human-in-the-loop product turn model
+        predictions into auditable reviewed data across scientific extraction
+        and internal-ticket use cases?
+\end{description}
+
+The study is intentionally not a model leaderboard. A single hosted deployment
+is fixed so that changes in data, prompt and pipeline remain visible. We use
+strict span $F_1$ as the primary extraction measure, because a gold export must
+reproduce exact offsets, and predeclare boundary-tolerant and overlap metrics as
+secondary measures of whether a suggestion still directs a reviewer to the
+useful phrase. For document-scale evaluation, source paper rather than window is
+the statistical unit because several windows may originate from one paper.
+
+Three expectations guide the analysis. First, syntactically valid JSON will not
+guarantee correct labels or boundaries. Second, schema definitions and explicit
+negative guidance will materially affect extraction quality. Third, a complete
+document-scale run should be technically possible through sentence-level
+checkpointing, but accuracy need not improve with longer windows because calls
+remain sentence-local. These are evaluated only where retained artifacts support
+the comparison; unexecuted configurations are not presented as results.

@@ -1,2 +1,0 @@
-method,model,n_examples,strict_precision,strict_recall,strict_f1,lenient_precision,lenient_recall,lenient_f1,json_valid_rate,invalid_json_rate,invalid_label_rate
-few_shot,gpt-5.4,1000,0.3823,0.2459,0.2993,0.7753,0.4987,0.607,1.0,0.0,0.496

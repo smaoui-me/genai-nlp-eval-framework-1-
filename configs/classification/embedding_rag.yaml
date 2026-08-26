@@ -1,0 +1,35 @@
+method: embedding_rag
+prompt_path: prompts/classification/embedding_rag_ticket_classification_v1.txt
+
+llm:
+    temperature: 0.0
+    max_tokens: 1000
+    top_p: 1.0
+    timeout: 60
+    max_retries: 2
+    retry_sleep_seconds: 2
+
+retrieval:
+    index_dir: data/classification/retrieval/index
+    encoder_model: sentence-transformers/all-MiniLM-L6-v2
+    top_k: 3
+
+dataset:
+    input_path: data/classification/processed/ticket_extraction_eval.csv
+    labels_path: data/classification/processed/ticket_allowed_labels.json
+    columns:
+        ticket_id: ticket_id
+        text: text
+        gold_type: gold_type
+        gold_queue: gold_queue
+        gold_tags: gold_tags
+
+candidate_tags:
+    max_candidates: 40
+    fallback_top_k: 20
+
+extraction:
+    top_k_tags: 5
+
+debug:
+    max_rows: 20

@@ -1,0 +1,131 @@
+{
+  "configuration": {
+    "buckets": {
+      "long": {
+        "max_sentences": 200,
+        "min_sentences": 51,
+        "target": 250
+      },
+      "medium": {
+        "max_sentences": 50,
+        "min_sentences": 11,
+        "target": 250
+      },
+      "short": {
+        "max_sentences": 10,
+        "min_sentences": 1,
+        "target": 250
+      },
+      "very_long": {
+        "max_sentences": null,
+        "min_sentences": 201,
+        "target": 250
+      }
+    },
+    "dataset": "scirex",
+    "fixtures": {
+      "examples_per_bucket": 2,
+      "manual_review_examples_per_bucket": 8,
+      "preview_characters": 500
+    },
+    "sampling": {
+      "allow_overlap": true,
+      "maximum_overlap_ratio": 0.5,
+      "prefer_document_diversity": true,
+      "preserve_source_split": true,
+      "redistribute_shortfall": false,
+      "same_document_only": true
+    },
+    "schema_version": "1.0",
+    "seed": 42,
+    "target_examples": 1000
+  },
+  "created_at": "2026-08-04T01:03:14.403008+00:00",
+  "dataset": "scirex",
+  "git_commit": "82b814fa0e0a055052f975e885eda60419b3a2c1",
+  "inputs": [
+    {
+      "path": "data/annotation/raw/release_data/dev.jsonl",
+      "sha256": "b0dfc34d8e12e25d11e4b2bb53ecbe65e0336ef538b06bf34a431aa881344fe5",
+      "size_bytes": 4032390,
+      "split": "dev"
+    },
+    {
+      "path": "data/annotation/raw/release_data/test.jsonl",
+      "sha256": "c2ddd9334e843c1acfff1845c9917fc3297988c4f01584a1e925b9d461179866",
+      "size_bytes": 4869030,
+      "split": "test"
+    },
+    {
+      "path": "data/annotation/raw/release_data/train.jsonl",
+      "sha256": "c72cc490561327f65ab2add8b42f77a994970bc57f4433981b969302f9addd7b",
+      "size_bytes": 20510651,
+      "split": "train"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "data/annotation/processed/scirex/dev.jsonl",
+      "record_count": 147,
+      "sha256": "c9605253fb5506dc842f2a774721e9341c57da1968e812db70d71d337a8466c2",
+      "size_bytes": 7365711
+    },
+    {
+      "path": "data/annotation/processed/scirex/documents.jsonl",
+      "record_count": 438,
+      "sha256": "908064879cbd479fb605f86ea3b96e4f2c3835c2fc3a75edd79009d5b8de3b8b",
+      "size_bytes": 247816238
+    },
+    {
+      "path": "data/annotation/processed/scirex/examples_1000.jsonl",
+      "record_count": 1000,
+      "sha256": "48402840c3567d3c1a07c8c5a85af8d7012b34be46950b4171eb26f176c22399",
+      "size_bytes": 51733841
+    },
+    {
+      "path": "data/annotation/processed/scirex/label_schema.json",
+      "record_count": null,
+      "sha256": "76c5c0c60978d5d7c45491d4eceeebea6138af18f4e3c79c5996f56104216f5a",
+      "size_bytes": 385
+    },
+    {
+      "path": "data/annotation/processed/scirex/manual_review_sample.csv",
+      "record_count": null,
+      "sha256": "4892e58e95dbb4fa0442d2135e551ac2cf262dc3e90fd44a133168c627351268",
+      "size_bytes": 56439
+    },
+    {
+      "path": "data/annotation/processed/scirex/statistics.json",
+      "record_count": null,
+      "sha256": "334526dcd7f4626808f6657cfbc8c90c01e69d45991304f7fc0c27f1f690bcbe",
+      "size_bytes": 2892
+    },
+    {
+      "path": "data/annotation/processed/scirex/test.jsonl",
+      "record_count": 155,
+      "sha256": "0b3b5af5ebc2f3183442d970c8f3d797e70b0cf548c51919ad26be57b8d991c2",
+      "size_bytes": 8609975
+    },
+    {
+      "path": "data/annotation/processed/scirex/train.jsonl",
+      "record_count": 698,
+      "sha256": "8ff19553d4eda89d53483746d154f7eb0f89d53cbee8bda25b72ee8e3b666289",
+      "size_bytes": 35758155
+    },
+    {
+      "path": "data/annotation/fixtures/scirex/annotation_tool_smoke.jsonl",
+      "record_count": 8,
+      "sha256": "5b4cb0149030342f76a02ced70cf22f30bd3db51b31d4e0a65c071d7db776fa6",
+      "size_bytes": 425605
+    },
+    {
+      "path": "data/annotation/fixtures/scirex/annotation_tool_smoke_expected.json",
+      "record_count": null,
+      "sha256": "3536272897254339950b6ef5842d15222333e8948ad576d3848fc98a558d9194",
+      "size_bytes": 333
+    }
+  ],
+  "preprocessing_command": "python scripts/annotation/prepare_scirex.py --raw-dir data/annotation/raw/release_data --output-dir data/annotation/processed/scirex --config configs/annotation/scirex_preprocessing.yaml --overwrite",
+  "preprocessing_seed": 42,
+  "schema_version": "1.0"
+}

@@ -1,158 +1,141 @@
-# GENAI_NLP_EVAL_FRAMEWORK_1
+# GenAI NLP Evaluation and Annotation Framework
 
-This repository is a reusable evaluation framework for GenAI-based NLP tasks.
+A reproducible framework for evaluating LLM-based classification and entity
+extraction, generating pre-annotations, reviewing model suggestions, and
+exporting traceable gold data.
 
-## Current status
+The repository contains two connected components:
 
-- `classification/`
-  Implemented ticket label prediction pipeline. It predicts existing ticket labels:
-  `type`, `queue`, and `tags`.
-- `extraction/`
-  Implemented location-only NER-style extraction pipeline on FewNERD.
-- `annotation/`
-  Placeholder for future LLM-assisted pre-annotation workflows.
+- A Streamlit annotation product for configurable extraction, optional ticket
+  routing, human review, and reviewed JSON export.
+- Offline evaluation pipelines for ticket classification, Few-NERD extraction,
+  and long-document SciREX experiments.
 
-## Classification data
+The product is research software. It does not yet provide authentication,
+role-based access, a central database, work queues, or multi-tenant isolation.
 
-The active classification dataset lives under `data/classification/processed/`.
+## Start the annotation product
 
-- `data/classification/processed/ticket_allowed_labels.json`
-  Allowed label space for `types`, `queues`, and `tags`
-- `data/classification/processed/ticket_extraction_eval.csv`
-  Evaluation dataset for the current classification task
+Requirements: Docker Engine and Docker Compose v2.
 
-Note:
-- `ticket_extraction_eval.csv` keeps a legacy filename for safety
-- the implemented task is still classification, not extraction
+```bash
+cp .env.example .env
+docker compose up --build
+```
 
-## Classification pipeline
+Open <http://localhost:8501>. The interface can be inspected without an LLM.
+Pre-annotation and routing are enabled after a hosted OpenAI-compatible endpoint
+or local Ollama model is configured in `.env`.
 
-Implemented variants currently live under the classification task area:
+Reviewed exports are stored outside the image at
+`genai-nlp-annotation-tool/data/gold_exports/`.
 
-- `zero_shot`
-  One prompt predicts `type`, `queue`, and `tags`
-- `agent_two_step`
-  Step 1 extracts evidence from the ticket text, step 2 maps to labels
-- `few_shot`
-  Same prediction target with in-context examples
+See [QUICKSTART.md](QUICKSTART.md) for the complete walkthrough.
+For an end-to-end verification of every method, including synthetic embedding
+data and expected outputs, follow [docs/TESTING.md](docs/TESTING.md).
 
-All active classification code should live in:
+## Use the product with another domain
 
-- `configs/classification/`
-- `prompts/classification/`
-- `scripts/classification/`
-- `src/genai_eval/classification/`
-- `results/classification/`
+1. Copy a YAML template under
+   `genai-nlp-annotation-tool/config/use_cases/`.
+2. Define the entity labels, label descriptions, domain instructions, and
+   optional routing departments.
+3. Restart the application and select the new use case.
+4. Inspect and edit the generated prompt before inference.
+5. Review every suggested span before treating the export as gold data.
 
-Classification-specific retrieval or embedding/RAG logic should live in:
+No Python changes are required for a new extraction schema.
 
-- `src/genai_eval/classification/retrieval/`
+## Validate the repository in Docker
 
-## Evaluation
+```bash
+docker compose --profile test run --rm test
+docker compose up --build -d
+docker compose ps
+docker compose down
+```
 
-The current classification evaluation compares predictions against gold labels for:
+The first command builds the dedicated test target and runs the network-free
+test suite. By default, the application uses `runtime-embeddings`, which supports
+both LLM and local embedding routing. Set `ANNOTATION_TARGET=runtime` in `.env`
+only when a smaller LLM-only image is preferred.
 
-- `type`
-- `queue`
-- `tags`
+## Repository structure
 
-Reported metrics include:
+| Path | Purpose |
+|---|---|
+| `genai-nlp-annotation-tool/` | Streamlit product, domain templates, prompts, and product tests |
+| `src/genai_eval/` | Reusable evaluation and preprocessing modules |
+| `scripts/` | Reproducible classification, extraction, and SciREX entry points |
+| `configs/` and `prompts/` | Versioned experiment definitions |
+| `data/` | Compact public fixtures, cleaned evaluation tables, and provenance metadata |
+| `eval/corpora/` | Frozen SciREX study manifests |
+| `docs/annotation/` | Study protocols and completed evaluation summaries |
+| `docs/report/` | LaTeX source and compiled scientific report |
+| `tests/` | Framework and container-distribution tests |
 
-- `type_accuracy`
-- `type_macro_f1`
-- `queue_accuracy`
-- `queue_macro_f1`
-- `tag_micro_precision`
-- `tag_micro_recall`
-- `tag_micro_f1`
-- `tag_row_precision`
-- `tag_row_recall`
-- `tag_row_f1`
-- `invalid_json_rate`
-- `invalid_label_rate`
-- `evidence_valid_rate`
+Large raw datasets and generated prediction files are intentionally excluded
+from ordinary Git. See [data/README.md](data/README.md) for sources, licenses,
+and reconstruction commands. Runtime output conventions are documented in
+[results/README.md](results/README.md).
 
-Classification outputs and evaluation artifacts should be written under:
+## Offline evaluation
 
-- `results/classification/`
-- `results/classification/evaluation/`
+The full evaluation environment is also available through Compose. Local
+`data/`, `eval/`, and `results/` directories are mounted into the container, so
+large datasets and generated outputs remain outside the image:
 
-The extraction evaluation compares predicted location spans against gold spans on FewNERD.
+```bash
+docker compose --profile tools build evaluation
+docker compose --profile tools run --rm evaluation \
+  python scripts/annotation/check_scirex_study_readiness.py
+```
 
-Reported extraction metrics include:
+To work outside Docker, install the runtime and development dependencies:
 
-- `strict_precision`
-- `strict_recall`
-- `strict_f1`
-- `lenient_precision`
-- `lenient_recall`
-- `lenient_f1`
-- `json_valid_rate`
-- `invalid_json_rate`
-- `invalid_label_rate`
+```bash
+python -m venv .venv
+python -m pip install -r requirements-dev.txt
+python -m pytest -q
+```
 
-Extraction outputs and evaluation artifacts should be written under:
+Representative entry points:
 
-- `results/extraction/`
-- `results/extraction/evaluation/`
+```bash
+python scripts/classification/run_ticket_classification_with_evidence.py --method zero_shot --limit 1
+python scripts/extraction/run_few_shot_structured.py --limit 10
+python scripts/annotation/check_scirex_study_readiness.py
+```
 
-## Current results
+The app can also route tickets directly with a local similarity-weighted vote
+over reviewed examples. The offline `embedding_rag` experiment uses those
+examples as dynamic few-shot context for an LLM. Both require the larger
+PyTorch-based dependency stack. See
+[docs/classification/EMBEDDING_RETRIEVAL.md](docs/classification/EMBEDDING_RETRIEVAL.md)
+for the data contract, leakage-safe split, index build, evaluation, and
+prediction-only workflow.
 
-Latest 100-row classification results:
+LLM runs require the variables shown in `.env.example`. Tests do not make
+network calls.
 
-- `zero_shot`
-  - `type_accuracy = 0.84`
-  - `queue_accuracy = 0.46`
-  - `tag_micro_f1 = 0.2695`
-  - `tag_row_f1 = 0.2679`
-  - `evidence_valid_rate = 0.9567`
-- `agent_two_step`
-  - `type_accuracy = 0.80`
-  - `queue_accuracy = 0.46`
-  - `tag_micro_f1 = 0.2453`
-  - `tag_row_f1 = 0.2471`
-  - `evidence_valid_rate = 0.9455`
+## Research artifacts
 
-Interpretation:
+The completed report is available as
+[NLP_Lab_Project_Report.pdf](NLP_Lab_Project_Report.pdf). Its LaTeX source is
+kept under [`docs/report/`](docs/report/). The retained study documentation
+distinguishes prompt-development results, held-out evaluation, and the
+100-paper operational run. The configured 1,000-window SciREX run is prepared
+but is not presented as a completed experiment.
 
-- `zero_shot` currently performs better than `agent_two_step` on `type` and `tags`
-- both methods are similar on `queue`
-- both methods are stable structurally with `invalid_json_rate = 0.0` and `invalid_label_rate = 0.0`
+## Security and privacy
 
-Latest 100-row extraction results on location-only FewNERD:
+Do not send confidential tickets or documents to an endpoint that has not been
+approved for the relevant data. Secrets are loaded at runtime and are excluded
+from Git and the Docker build context. See [SECURITY.md](SECURITY.md).
 
-- `zero_shot_structured`
-  - `strict_precision = 0.7608`
-  - `strict_recall = 0.8503`
-  - `strict_f1 = 0.8030`
-  - `json_valid_rate = 1.0`
-- `zero_shot_freeform`
-  - `strict_precision = 0.7667`
-  - `strict_recall = 0.8610`
-  - `strict_f1 = 0.8111`
-  - `json_valid_rate = 0.0` because JSON is not used for this method
+## Contributing and license
 
-Interpretation:
-
-- both extraction methods perform strongly on location span extraction
-- `freeform` is slightly better than `structured` on this 100-row slice
-- `strict` and `lenient` scores are identical here, which means text extraction and index assignment are aligned on the accepted predictions
-- both extraction methods are stable after switching prompts to explicit token-index supervision
-
-## Run commands
-
-Run one-row classification checks:
-
-- `python scripts/classification/run_ticket_classification_with_evidence.py --method zero_shot --limit 1`
-- `python scripts/classification/run_ticket_classification_with_evidence.py --method agent_two_step --limit 1`
-- `python scripts/classification/run_ticket_classification_with_evidence.py --method few_shot --limit 1`
-
-Compare saved classification runs:
-
-- `python scripts/classification/compare_ticket_classification_with_evidence.py`
-
-Run extraction comparisons:
-
-- `python scripts/extraction/run_zero_shot_structured.py --limit 100`
-- `python scripts/extraction/run_zero_shot_freeform.py --limit 100`
-- `python scripts/extraction/compare.py`
+Development and validation guidance is in
+[CONTRIBUTING.md](CONTRIBUTING.md). Repository code is released under the MIT
+License. Third-party datasets retain their own licenses; see
+[data/README.md](data/README.md).

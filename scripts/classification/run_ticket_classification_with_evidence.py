@@ -12,7 +12,6 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 from genai_eval.classification.methods import METHOD_REGISTRY
-from genai_eval.classification.evaluator import build_error_rows, evaluate_predictions
 from genai_eval.label_candidates import build_tag_frequency, parse_tag_list, select_candidate_tags
 
 
@@ -39,8 +38,11 @@ def get_column_mapping(config: dict) -> dict:
     )
 
 
-def validate_columns(df: pd.DataFrame, columns: dict) -> None:
-    missing = [column_name for column_name in columns.values() if column_name not in df.columns]
+def validate_columns(df: pd.DataFrame, columns: dict, require_gold: bool = True) -> None:
+    required_fields = ["text"]
+    if require_gold:
+        required_fields.extend(["gold_type", "gold_queue", "gold_tags"])
+    missing = [columns[field] for field in required_fields if columns[field] not in df.columns]
     if missing:
         raise KeyError(f"Missing dataset columns: {missing}")
 
@@ -54,7 +56,7 @@ def run_pipeline(df: pd.DataFrame, method, allowed_labels: dict, columns: dict, 
     with output_path.open("w", encoding="utf-8") as fout:
         total_rows = len(df)
         for row_index, (_, row) in enumerate(df.iterrows(), start=1):
-            ticket_id = row[columns["ticket_id"]]
+            ticket_id = row.get(columns["ticket_id"], row_index)
             text = str(row[columns["text"]])
             gold_type = str(row.get(columns["gold_type"], ""))
             gold_queue = str(row.get(columns["gold_queue"], ""))
@@ -68,7 +70,11 @@ def run_pipeline(df: pd.DataFrame, method, allowed_labels: dict, columns: dict, 
             )
             print(f"[{row_index}/{total_rows}] ticket_id={ticket_id} calling {method.name}", flush=True)
             try:
-                result = method.extract_record(text, allowed_labels, context={"candidate_tags": candidate_tags})
+                result = method.extract_record(
+                    text,
+                    allowed_labels,
+                    context={"candidate_tags": candidate_tags, "ticket_id": ticket_id},
+                )
                 print(
                     f"[{row_index}/{total_rows}] ticket_id={ticket_id} done "
                     f"(json_valid={result['json_validity']['all_json_valid']}, tags={len(result['validated_output']['tags'])})",
@@ -107,6 +113,7 @@ def run_pipeline(df: pd.DataFrame, method, allowed_labels: dict, columns: dict, 
                 "validated_output": result["validated_output"],
                 "json_validity": result.get("json_validity", {}),
                 "validation": result.get("validation", {}),
+                "retrieval": result.get("retrieval"),
             }
             if error_msg:
                 record["error"] = error_msg
@@ -118,6 +125,9 @@ def run_pipeline(df: pd.DataFrame, method, allowed_labels: dict, columns: dict, 
 
 
 def save_evaluation(records: list[dict], scores_path: Path, errors_path: Path) -> None:
+    # Keep prediction-only deployments independent of evaluation-only packages.
+    from genai_eval.classification.evaluator import build_error_rows, evaluate_predictions
+
     scores_path.parent.mkdir(parents=True, exist_ok=True)
     pd.DataFrame([evaluate_predictions(records)]).to_csv(scores_path, index=False)
     pd.DataFrame(build_error_rows(records)).to_csv(errors_path, index=False)
@@ -134,6 +144,11 @@ def main():
     parser.add_argument("--labels", default=None)
     parser.add_argument("--output", default=None)
     parser.add_argument("--run-name", default=None)
+    parser.add_argument(
+        "--predict-only",
+        action="store_true",
+        help="Allow unlabeled input and skip metric calculation.",
+    )
     args = parser.parse_args()
 
     method_cls = METHOD_REGISTRY[args.method]
@@ -145,11 +160,15 @@ def main():
 
     full_df = load_dataframe(input_path)
     columns = get_column_mapping(config)
-    validate_columns(full_df, columns)
+    validate_columns(full_df, columns, require_gold=not args.predict_only)
     limit = args.limit if args.limit is not None else config.get("debug", {}).get("max_rows", 20)
     df = full_df.head(limit) if limit and limit > 0 else full_df.copy()
     allowed_labels = load_allowed_labels(labels_path)
-    tag_frequency = build_tag_frequency(full_df[columns["gold_tags"]].tolist())
+    tag_frequency = (
+        build_tag_frequency(full_df[columns["gold_tags"]].tolist())
+        if columns["gold_tags"] in full_df.columns
+        else {}
+    )
 
     run_name = args.run_name or method.name
     output_path = Path(args.output or f"results/classification/{run_name}.jsonl")
@@ -158,7 +177,10 @@ def main():
 
     print(f"Running method `{args.method}` on {len(df)} rows")
     records = run_pipeline(df, method, allowed_labels, columns, config.get("candidate_tags", {}), tag_frequency, output_path)
-    save_evaluation(records, scores_path, errors_path)
+    if args.predict_only:
+        print("Prediction-only mode: skipped metrics because no independent gold labels were required")
+    else:
+        save_evaluation(records, scores_path, errors_path)
 
 
 if __name__ == "__main__":

@@ -18,4 +18,4 @@ __all__ = [
     "ZeroShotFreeformExtractionMethod",
     "FewShotStructuredExtractionMethod",
     "FewShotFreeformExtractionMethod",
- "AgentVerifyExtractionMethod"]
+    "AgentVerifyExtractionMethod"]

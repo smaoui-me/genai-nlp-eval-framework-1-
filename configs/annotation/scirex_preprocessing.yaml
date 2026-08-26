@@ -1,0 +1,35 @@
+dataset: scirex
+schema_version: "1.0"
+seed: 42
+target_examples: 1000
+
+buckets:
+  short:
+    min_sentences: 1
+    max_sentences: 10
+    target: 250
+  medium:
+    min_sentences: 11
+    max_sentences: 50
+    target: 250
+  long:
+    min_sentences: 51
+    max_sentences: 200
+    target: 250
+  very_long:
+    min_sentences: 201
+    max_sentences: null
+    target: 250
+
+sampling:
+  same_document_only: true
+  preserve_source_split: true
+  prefer_document_diversity: true
+  allow_overlap: true
+  maximum_overlap_ratio: 0.5
+  redistribute_shortfall: false
+
+fixtures:
+  examples_per_bucket: 2
+  manual_review_examples_per_bucket: 8
+  preview_characters: 500

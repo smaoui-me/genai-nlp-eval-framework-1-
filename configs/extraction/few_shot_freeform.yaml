@@ -11,10 +11,10 @@ llm:
 
 few_shot:
     n_examples: 3
-    examples_path: data/extraction/raw/intra/train-00000-of-00001.csv
+    examples_path: sample_data/extraction/fewnerd_few_shot_examples.csv
 
 dataset:
-    input_path: data/extraction/processed/fewnerd_location_test_500.csv
+    input_path: data/extraction/processed/fewnerd_location_test_1000.csv
     labels_path: null
 
 debug:

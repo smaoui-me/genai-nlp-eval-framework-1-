@@ -1,0 +1,141 @@
+% ============================================================================
+% 2 STATE OF THE ART AND THEMATIC ANALYSIS  —  the literature review.
+% Organized BY THEME, not by paper. Each theme ends with the design decision
+% it produced. Kept tight: the 8-page limit includes the bibliography.
+% ============================================================================
+\section{State of the Art and Thematic Analysis}
+\label{sec:related}
+
+We read work published between 2018 and 2025, mostly peer-reviewed and from the
+main NLP and machine-learning venues (ACL, EMNLP, NAACL, EACL, COLING, ICLR,
+NeurIPS), from reviewed journals (\emph{PNAS}, \emph{Computational
+Linguistics}, \emph{Frontiers of Computer Science}, \emph{JMIR Medical
+Informatics}), or from CHI and WWW for the human-in-the-loop side. Seven sources
+are arXiv preprints, kept only where the work is widely cited and from an
+identifiable group, and marked as preprints rather than treated as reviewed.
+Sources had to speak to one of four questions: how well prompted models extract
+and classify, how their output should be shaped, how a reviewer should be
+pointed at the doubtful cases, and how any of it can be checked without gold
+data. Eight themes follow.
+
+\paragraph{From supervised pipelines to prompted generalists.}
+\citet{xu2024generative} survey generative IE. Generative formulations can
+accommodate dynamically specified labels through natural-language descriptions,
+avoiding a fixed classifier output layer. Specialized instruction-tuned systems
+such as InstructUIE \citep{wang2023instructuie} and targeted-distillation systems
+such as UniversalNER \citep{zhou2024universalner} demonstrate that
+task-specialized smaller models can outperform general-purpose prompted LLMs on
+IE benchmarks. GLiNER \citep{zaratiana2024gliner} makes a related point from the
+encoder side: a bidirectional encoder matches LLM prompting at a fraction of
+the inference cost.
+\textbf{In our project,} fine-tuning was out of scope: we had access to one
+hosted model and no permission to train on company data. So we compare only
+methods that need no training step.
+
+\paragraph{How far prompting alone gets on extraction.}
+\citet{han2023solved} ask whether IE is solved by ChatGPT and answer no:
+performance holds on tasks rewarding reasoning and drops on sequence labeling,
+where boundaries count. \citet{xie2023empirical} show that decomposing NER into
+simpler label-specific questions can substantially improve zero-shot
+performance. \citet{sivarajkumar2024empirical} compare six prompt types across five
+clinical tasks and find no overall winner, so prompt design must be tested per
+task. GPT-NER \citep{wang2023gptner} adds a self-verification step asking
+whether an extracted span really belongs to the target type.
+\textbf{In our project,} two of these claims are testable, so we test both
+(H1, H3).
+
+\paragraph{Document-level scientific extraction.}
+SciREX was introduced specifically because sentence- and paragraph-level IE
+misses information distributed across scientific documents
+\citep{jain2020scirex}. It annotates mentions of Method, Task, Metric and
+Dataset as well as coreference, salience and document-level relations. Our
+study uses its mention spans as externally supplied reference annotations; it
+does not attempt the original paper's coreference or $n$-ary relation tasks.
+This distinction prevents a misleading direct comparison between our
+pre-annotation score and the SciREX end-to-end relation baseline.
+
+\paragraph{Classification without training data, and label-set size.}
+\citet{yin2019benchmarking} turn classification into natural language inference
+with each label as a hypothesis, which works for any label set at inference
+time but reacts strongly to wording. The embedding alternative encodes text and
+label descriptions and selects the nearest representation
+\citep{reimers2019sentence}; it is computationally inexpensive, local, and
+requires no LLM call, and SetFit \citep{tunstall2022efficient}
+shows how much it gains from eight labeled examples per class. MTEB
+\citep{muennighoff2023mteb} is the usual way to choose an encoder. The harder
+problem is scale: \citet{bhambhoria2023simple} show that flat zero-shot
+classification degrades on layered label sets and that splitting the
+decision into entailment steps recovers much of the loss, TELEClass
+\citep{zhang2025teleclass} adds class-indicative terms to the label set,
+and HierPrompt \citep{zhang2025hierprompt} builds hierarchy-aware prototypes.
+All three assume that putting hundreds of labels in one prompt does not work.
+\textbf{In our project,} the label sets have 4, 10 and several hundred values,
+so we can watch this drop happen inside one dataset (H2).
+
+\paragraph{Output format is not a free choice.}
+\citet{tam2024speak} show format restrictions measurably hurt reasoning, and
+tighter constraints hurt more, though structured formats \emph{help}
+classification, where the task is choosing rather than reasoning. Span
+extraction additionally needs offsets consistent with the emitted text, which
+no JSON schema checks.
+\textbf{In our project,} each extraction method exists twice, structured and
+free-form, with accuracy and structural validity measured separately.
+
+\paragraph{Whether an agentic step helps.}
+\citet{huang2024selfcorrect} study intrinsic self-correction and find
+performance usually does not improve and can get worse, because the model has
+no independent signal about which parts were wrong. Work on LLMs as judges
+documents position, verbosity and self-preference biases pointing the same way
+\citep{zheng2023judging}.
+\textbf{In our project,} we treated ``agentic helps'' as a hypothesis to test
+rather than assume, and built two agentic variants for it (H3).
+
+\paragraph{LLMs as annotators, and why validation is not optional.}
+\citet{gilardi2023chatgpt} report ChatGPT beating crowd workers on several
+annotation tasks at a fraction of the cost. The careful work came soon after.
+\citet{ziems2024transform} test 13 models on 25 benchmarks and find fair
+agreement with human coders but no win over fine-tuned models,
+\citet{reiss2023testing} shows non-determinism alone can push consistency below
+accepted reliability thresholds, and \citet{pangakis2023validation} replicate
+27 tasks across 11 datasets and conclude every task needs its own check against
+human labels. \citet{baumann2025hacking} quantify the downstream risk: across
+13 million annotations feeding 1.4 million regressions, ordinary choices of
+model and prompt wording sufficed to flip statistical conclusions. See
+\citet{tan2024annotation} for a survey.
+\textbf{In our project,} this theme is the reason the project exists. It also
+fixes one rule for the tool: every human decision gets stored, because the
+record of disagreement is the evidence.
+
+\paragraph{Prioritizing uncertain cases for review.}
+A reviewer facing forty plausible suggestions stops reading them properly, so
+the tool must rank them. \citet{geng2024survey} survey confidence estimation
+and split it into white-box methods reading internal signals such as token
+probabilities and black-box methods treating the model as opaque;
+\citet{kadavath2022know} show large models carry usable self-knowledge in their
+probabilities. The black-box route is sampling: \citet{wang2023selfconsistency}
+aggregate several sampled generations and \citet{kuhn2023semantic} refine this
+further by grouping samples that mean the same thing before counting them.
+\citet{xiong2024express} compare the families and report two findings we relied
+on: models are overconfident when stating confidence in words, and white-box
+methods beat black-box ones only narrowly. For annotation specifically,
+\citet{wang2024collaborative} study how to make human verification effective
+rather than mechanical.
+\textbf{In our project,} the annotation tool supports multiple confidence
+signals for prioritizing review; a systematic comparison of their calibration,
+review utility, and additional cost remains future work.
+
+\paragraph{Keeping the human in the loop.}
+INCEpTION \citep{klie2018inception} already paired automatic suggestions with
+human curation before LLMs; MEGAnno+ \citep{kim2024meganno} splits the work as
+we do, with LLM agents proposing and people verifying. For annotation quality
+the standard vocabulary is \citet{artstein2008intercoder}.
+\textbf{In our project,} we took that two-step design, adapted it to span-level
+extraction with character offsets, and logged every accept, relabel and
+delete.
+
+\paragraph{The integration considered here.}
+Existing work studies individual components of this process, but we did not
+find a single task-separated workflow combining reproducible LLM inference,
+independently scored extraction and classification, reviewer correction,
+provenance, and reusable gold-data export for the target setting considered
+here. This project implements and evaluates that specific integration.

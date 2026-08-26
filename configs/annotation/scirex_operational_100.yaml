@@ -1,0 +1,17 @@
+runner:
+  input: eval/corpora/scirex_operational_100.jsonl
+  output: results/annotation/scirex_operational_100/predictions.jsonl
+  checkpoint_dir: results/annotation/scirex_operational_100/checkpoints
+  method: few_shot_structured
+  prompt_mode: suggested
+  max_sentences: 0
+  workers: 4
+  timeout: 90
+  max_retries: 3
+  max_tokens: 500
+  requests_per_minute: 120
+  max_calls: 6100
+  max_cost_usd: 0
+  input_cost_per_million: 0
+  output_cost_per_million: 0
+  progress_every: 25

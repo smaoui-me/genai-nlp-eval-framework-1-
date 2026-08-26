@@ -28,7 +28,7 @@ def main() -> None:
     method = method_cls(Path(args.config)) if args.config else method_cls()
     config = getattr(method, "config", {})
     dataset_cfg = config.get("dataset", {})
-    input_path = Path(args.input or dataset_cfg.get("input_path", "data/extraction/processed/fewnerd_location_test_500.csv"))
+    input_path = Path(args.input or dataset_cfg.get("input_path", "data/extraction/processed/fewnerd_location_test_1000.csv"))
     full_df = load_dataframe(input_path)
     limit = args.limit if args.limit is not None else config.get("debug", {}).get("max_rows", 100)
     df = full_df.head(limit) if limit and limit > 0 else full_df.copy()

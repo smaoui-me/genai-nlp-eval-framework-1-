@@ -1,0 +1,9 @@
+ticket_id,text,gold_type,gold_queue,gold_tags
+DEV-001,"Remote staff cannot connect because the VPN gateway reports that the service is down.",Incident,Technical Support,"[""VPN"",""Network"",""Outage""]"
+DEV-002,"Install the licensed design software on a newly issued desktop computer.",Request,Technical Support,"[""Software"",""Hardware""]"
+DEV-003,"I paid one invoice but the payment appears twice on my statement.",Incident,Billing and Payments,"[""Billing"",""Payment"",""Invoice""]"
+DEV-004,"Move our subscription to the professional tier at the next renewal.",Change,Billing and Payments,"[""Subscription"",""Billing""]"
+DEV-005,"Send a password reset for the account that I can no longer access.",Request,IT Support,"[""Password"",""Account"",""Access""]"
+DEV-006,"Register my new phone as the MFA device for my employee account.",Change,IT Support,"[""MFA"",""Account"",""Access""]"
+DEV-007,"Please tell me when order 7731 is expected to be delivered.",Request,Customer Service,"[""Delivery"",""Order""]"
+DEV-008,"My shipment was delivered with a broken item inside the box.",Incident,Customer Service,"[""Delivery"",""Order""]"

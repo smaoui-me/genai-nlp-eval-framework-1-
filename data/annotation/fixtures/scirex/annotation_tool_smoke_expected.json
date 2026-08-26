@@ -1,0 +1,20 @@
+{
+  "expected_buckets": {
+    "long": 2,
+    "medium": 2,
+    "short": 2,
+    "very_long": 2
+  },
+  "expected_example_count": 8,
+  "required_fields": [
+    "example_id",
+    "doc_id",
+    "source_split",
+    "length_bucket",
+    "sentence_count",
+    "text",
+    "sentences",
+    "sections",
+    "entities"
+  ]
+}

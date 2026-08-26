@@ -1,0 +1,69 @@
+% ============================================================================
+% 4 METHODOLOGY
+% ============================================================================
+\section{Methodology}
+\label{sec:methodology}
+
+\paragraph{Experimental control and provenance.}
+All reported LLM runs use the configured \code{hosted:gpt-5.4} deployment at
+temperature $0$. Each prediction record stores the example and document IDs,
+model and method, raw and parsed output, prompt and manifest hashes, token
+usage, elapsed time and validation state. Evaluation is a separate deterministic
+step, so alternative matching policies can be applied without another API call.
+We report only conditions backed by retained prediction and score artifacts.
+
+\paragraph{Short-input baselines.}
+Ticket classification predicts one \labelname{type}, one \labelname{queue} and
+a set of \labelname{tags}. A zero-shot call selects from allowed values and
+quotes evidence; an agentic two-step method first extracts evidence and then
+maps it to labels. Both completed the same 1{,}000-ticket slice. Few-shot
+classification is implemented but only smoke-tested on one row and is excluded
+from comparison. Embedding-based retrieval of reviewed tickets is also
+implemented as an optional dynamic few-shot method, but no leakage-safe
+reference/development/test split was available for the reported synthetic-ticket
+experiment; consequently, it is not included in the reported comparison. For
+interactive use, the annotation application additionally implements a pure
+nearest-neighbor router: it embeds a ticket locally and applies a
+similarity-weighted vote over reviewed reference tickets, without making a
+routing LLM call. This route is likewise excluded from the reported accuracy
+results because it has not yet been tested on an independent target-domain
+split. For Few-NERD, the two directly comparable 1{,}000-sentence
+conditions are few-shot structured JSON and few-shot free-form output, each
+using three training examples and explicit inclusive token indices. The
+zero-shot extraction artifacts contain 100 examples and are reported only as a
+supplementary scale check, not as a full-slice comparison.
+
+\paragraph{SciREX prompt selection and frozen evaluation.}
+The application derives a deterministic prompt from the active label schema,
+definitions and domain guidance; this suggestion costs no LLM call and remains
+editable. On a fixed 20-paper development sample, we compared the previous
+static few-shot prompt with this suggestion using the first ten app-detected
+sentences per window. The selected prompt presents Method, Task, Metric and
+Dataset to users; Dataset is mapped to SciREX's release label Material during
+evaluation. After prompt selection, a fresh 20-paper official-test sample,
+excluding test papers already inspected, was processed in full. A separate
+100-paper training-split gate, balanced across four length buckets, tested full
+coverage, throughput and failure recovery. No test result was used to revise
+the reported prompt.
+
+\paragraph{Document-scale execution.}
+Windows are split into sentences only for API calls; all sentences are processed
+when \code{max\_sentences=0}. Four workers handle independent documents. Before
+each call and after each successful sentence, state is written atomically.
+Repeating an identical command resumes at the next unfinished sentence, while
+hash checks reject mixed manifests, models or prompts. The runner enforces call
+and request-rate ceilings, retries transient failures, and records missing usage
+and invalid responses. Provider prices were unavailable, so monetary cost is
+not inferred from token counts.
+
+\paragraph{Metrics.}
+For extraction, strict one-to-one matching requires the same case-insensitive
+label and exact half-open character span. Boundary-tolerant matching permits a
+start within one token and an end within two; overlap matching accepts any
+same-label character overlap. Strict is primary; the other two quantify useful
+localization for human review. We report micro precision, recall and $F_1$,
+macro-document $F_1$, per-label and length-bucket results. Uncertainty intervals
+use 2{,}000 percentile-bootstrap samples clustered by source \code{doc\_id}.
+Ticket single-label fields use accuracy and macro-$F_1$; multi-label tags use
+micro-$F_1$. Invalid JSON, invalid labels, evidence validity, failures, token
+usage and coverage are reported as operational measures.

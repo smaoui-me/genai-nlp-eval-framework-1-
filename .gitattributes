@@ -1,0 +1,10 @@
+* text=auto eol=lf
+
+*.csv text eol=lf
+*.json text eol=lf
+*.jsonl text eol=lf
+*.pdf binary
+*.parquet binary
+*.png binary
+*.jpg binary
+*.jpeg binary

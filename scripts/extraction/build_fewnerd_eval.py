@@ -16,7 +16,7 @@ from genai_eval.extraction.utils import build_location_spans, parse_int_array, p
 LOCATION_TAG_ID = next(tag_id for tag_id, label in COARSE_LABELS.items() if label == "location")
 
 
-def process_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+def process_dataframe(df: pd.DataFrame, limit: int) -> pd.DataFrame:
     processed_rows = []
     for _, row in df.iterrows():
         tokens = parse_token_array(row["tokens"])
@@ -34,7 +34,7 @@ def process_dataframe(df: pd.DataFrame) -> pd.DataFrame:
                 "gold_entities": to_json_string(gold_entities),
             }
         )
-        if len(processed_rows) >= 500:
+        if len(processed_rows) >= limit:
             break
     return pd.DataFrame(processed_rows)
 
@@ -42,14 +42,17 @@ def process_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build FewNERD location extraction eval data.")
     parser.add_argument("--input", default="data/extraction/raw/intra/test-00000-of-00001.csv")
-    parser.add_argument("--output", default="data/extraction/processed/fewnerd_location_test_500.csv")
+    parser.add_argument("--output", default="data/extraction/processed/fewnerd_location_test_1000.csv")
+    parser.add_argument("--limit", type=int, default=1000)
     args = parser.parse_args()
 
     input_path = Path(args.input)
     output_path = Path(args.output)
 
     df = pd.read_csv(input_path)
-    processed = process_dataframe(df)
+    if args.limit < 1:
+        parser.error("--limit must be at least 1")
+    processed = process_dataframe(df, limit=args.limit)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     processed.to_csv(output_path, index=False)

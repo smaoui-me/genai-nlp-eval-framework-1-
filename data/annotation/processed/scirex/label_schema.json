@@ -1,0 +1,21 @@
+{
+  "dataset": "scirex",
+  "labels": [
+    {
+      "description": "SciREX entity label",
+      "name": "Material"
+    },
+    {
+      "description": "SciREX entity label",
+      "name": "Method"
+    },
+    {
+      "description": "SciREX entity label",
+      "name": "Metric"
+    },
+    {
+      "description": "SciREX entity label",
+      "name": "Task"
+    }
+  ]
+}

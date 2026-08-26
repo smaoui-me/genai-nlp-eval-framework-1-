@@ -1,0 +1,6 @@
+# Optional dense-retrieval environment. Prefer official CPU-only PyTorch wheels.
+-r requirements-eval.txt
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.13.0+cpu; sys_platform != "darwin"
+torch==2.13.0; sys_platform == "darwin"
+sentence-transformers==5.6.1

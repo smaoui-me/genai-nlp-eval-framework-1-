@@ -10,7 +10,7 @@ llm:
     retry_sleep_seconds: 2
 
 dataset:
-    input_path: data/extraction/processed/fewnerd_intra_test.csv
+    input_path: data/extraction/processed/fewnerd_location_test_1000.csv
     labels_path: data/extraction/processed/fewnerd_allowed_entity_types.json
 
 runtime:

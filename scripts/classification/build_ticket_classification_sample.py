@@ -6,9 +6,11 @@ Outputs:
   data/classification/processed/ticket_allowed_labels.json
 """
 
+import argparse
 import json
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
 
 RAW_PATH = Path("data/classification/raw/customer_support_tickets.csv")
 PROCESSED_CSV = Path("data/classification/processed/ticket_extraction_eval.csv")
@@ -65,7 +67,13 @@ def build_allowed_labels(df: pd.DataFrame) -> dict:
     }
 
 
-def main():
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Build the cleaned ticket-classification dataset.")
+    parser.add_argument("--limit", type=int, default=1000)
+    args = parser.parse_args()
+    if args.limit < 1:
+        parser.error("--limit must be at least 1")
+
     PROCESSED_CSV.parent.mkdir(parents=True, exist_ok=True)
 
     print(f"Loading {RAW_PATH} ...")
@@ -77,12 +85,16 @@ def main():
     df["gold_queue"] = df["queue"].str.strip()
     df["gold_tags"] = collect_tags(df).apply(json.dumps)
 
-    out = df[["ticket_id", "text", "gold_type", "gold_queue", "gold_tags"]]
-    out.to_csv(PROCESSED_CSV, index=False)
+    out = df[["ticket_id", "text", "gold_type", "gold_queue", "gold_tags"]].head(args.limit)
+    out.to_csv(PROCESSED_CSV, index=False, lineterminator="\n")
     print(f"Saved {len(out)} rows to {PROCESSED_CSV}")
 
     allowed = build_allowed_labels(df)
-    ALLOWED_LABELS_PATH.write_text(json.dumps(allowed, indent=2))
+    ALLOWED_LABELS_PATH.write_text(
+        json.dumps(allowed, indent=2) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
     print(f"Saved allowed labels to {ALLOWED_LABELS_PATH}")
     print(f"  {len(allowed['types'])} types, {len(allowed['queues'])} queues, {len(allowed['tags'])} tags")
 

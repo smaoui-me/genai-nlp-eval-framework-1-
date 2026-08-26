@@ -1,0 +1,17 @@
+name: Scientific information extraction
+description: Extract research methods, tasks, metrics, and datasets from scientific text.
+entity_labels:
+  - Method
+  - Task
+  - Metric
+  - Dataset
+label_definitions:
+  Method: An algorithm, model, architecture, system, loss, optimization procedure, or technical approach.
+  Task: A research problem, prediction objective, or application task.
+  Metric: A named evaluation measure or criterion such as accuracy, F1, BLEU, runtime, or mean squared error.
+  Dataset: A named dataset, corpus, benchmark, data collection, language resource, or input data source.
+domain_guidance: Do not label algorithms, models, hardware, or mathematical objects as datasets.
+routing:
+  enabled_by_default: false
+  departments: []
+  guidance: Choose a destination only when explicitly configured for the organization.

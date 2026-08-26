@@ -1,9 +1,8 @@
-This module is reserved for future true extraction work.
+# Extraction evaluation package
 
-Planned scope:
-- NER-style entity extraction
-- span extraction
-- future extraction-specific schemas and evaluators
+This package implements the Few-NERD span-extraction methods and evaluator.
+Methods share the interfaces in `methods/base.py`; experiment entry points and
+their versioned configs live under `scripts/extraction/` and
+`configs/extraction/`.
 
-Current implemented ticket label prediction belongs under `classification/`.
-
+Ticket routing is a classification task and remains under `classification/`.

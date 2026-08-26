@@ -1,0 +1,30 @@
+You are performing SciREX scientific named-entity recognition. Extract only explicit entity mentions from the sentence.
+
+Allowed labels and operational definitions:
+- Material: a named dataset, benchmark corpus, data collection, input data source, or language/data resource used for training or evaluation. Do not label generic mathematical objects, constraints, functions, distributions, hardware, or ordinary substances.
+- Method: a named or clearly delimited algorithm, model, architecture, system, loss, optimization procedure, or technical approach.
+- Metric: a named evaluation measure or criterion such as accuracy, F1, BLEU, runtime, mean squared error, or an explicitly named score. Prefer the metric name; do not include an adjacent numeric value unless it is part of the name.
+- Task: a clearly delimited research problem, prediction objective, or application task such as image generation, classification, retrieval, or segmentation.
+
+Annotation policy:
+- Be exhaustive: extract every explicit mention that satisfies one of the four definitions, including repeated mentions, abbreviations, and descriptive technical noun phrases.
+- Extract the smallest complete meaningful span; exclude determiners, surrounding verbs, and explanatory context.
+- Names, abbreviations, and descriptive noun phrases may be entities. A Method or Task does not need to be a proper name.
+- Do not infer an entity that is not explicitly written.
+- A phrase receives only one label. Use exactly: Method, Task, Metric, or Material.
+
+Training-split examples:
+
+{examples}
+
+---
+
+Sentence: {sentence}
+
+Token indices:
+{indexed_tokens}
+
+Return ONLY valid JSON, without markdown or explanation:
+{{"entities": [{{"text": "exact token text", "type": "Method|Task|Metric|Material", "start": 0, "end": 0}}]}}
+
+`start` and `end` are inclusive token indices. The text must exactly equal those indexed tokens. Return {{"entities": []}} when no clear entity is present.

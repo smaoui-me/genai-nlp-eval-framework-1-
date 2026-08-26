@@ -38,22 +38,23 @@ def _demo_entities() -> list[dict]:
 
 
 st.title(":material/edit_note: Annotation tool")
-st.caption("Create gold-standard NER data with LLM pre-labeling + human review")
+st.caption("Configurable extraction, optional ticket routing, human review, and reusable gold data")
 
 if is_configured():
     st.success(f"LLM connected — model **{get_model_name()}**", icon=":material/check_circle:")
 else:
     st.warning("No LLM credentials found. " + missing_credentials_message(), icon=":material/warning:")
 
-# --- The 4-step flow, one card per step ---
-st.subheader(":material/route: Human-in-the-loop flow", anchor=False)
+# --- The product flow, one card per step ---
+st.subheader(":material/route: Reusable human-in-the-loop workflow", anchor=False)
 
-flow = st.columns(4)
+flow = st.columns(5)
 steps = [
-    ("1", "description", "Raw text", "An unlabeled document or ticket"),
-    ("2", "auto_awesome", "LLM pre-labels", "Suggests entities (source: model)"),
-    ("3", "fact_check", "Human review", "Confirm, relabel, or delete each one"),
-    ("4", "task_alt", "Gold export", "Final reviewed JSON dataset"),
+    ("1", "description", "Raw text", "A document, ticket, PDF, or CSV row"),
+    ("2", "account_tree", "Optional routing", "LLM or reviewed-ticket embeddings"),
+    ("3", "auto_awesome", "LLM extraction", "Suggests important information spans"),
+    ("4", "fact_check", "Human review", "Corrects routing, labels, and omissions"),
+    ("5", "task_alt", "Reusable export", "Reviewed JSON for evaluation or learning"),
 ]
 for col, (num, icon, title, sub) in zip(flow, steps):
     with col, st.container(border=True):
@@ -70,6 +71,10 @@ st.caption(
     "**Gold JSON** is the final, human-reviewed file this tool produces — the trustworthy "
     "dataset used to evaluate or train other models."
 )
+st.caption(
+    "Use-case behavior comes from editable YAML templates and visible prompts, so the same "
+    "product can be adapted to ticketing, scientific documents, or another internal domain."
+)
 
 # --- Live preview of the highlighted-text review UI, using fake data above ---
 st.subheader(":material/visibility: What the review screen looks like", anchor=False)
@@ -78,22 +83,15 @@ st.subheader(":material/visibility: What the review screen looks like", anchor=F
 st.markdown(render_highlighted_html(DEMO_TEXT, _demo_entities(), LABELS_DEMO), unsafe_allow_html=True)
 st.caption("Solid border = confirmed by a human · dashed border = still pending review. Try it live on the **Annotate** page.")
 
-# --- Three short callouts pointing to the other pages ---
-col_a, col_b, col_c = st.columns(3)
+# --- Short callouts pointing to the useful workflow pages ---
+col_a, col_b = st.columns(2)
 with col_a:
     st.subheader(":material/edit_note: Start annotating", anchor=False)
     st.write(
-        "Upload a document, pick your entity labels, and choose a pre-labeling method — "
-        "zero-shot or few-shot, freeform or structured JSON output — on the "
-        "**Annotate** page."
+        "Choose a reusable use-case template, upload text/PDF/CSV, optionally route the ticket, "
+        "and review extracted information on the **Annotate** page."
     )
 with col_b:
-    st.subheader(":material/query_stats: Which method is best?", anchor=False)
-    st.write(
-        "Each pre-labeling strategy was benchmarked on FewNERD. See precision/recall/F1 "
-        "and JSON validity per method on the **Extraction Method Evaluation** page."
-    )
-with col_c:
     st.subheader(":material/fact_check: How much does the LLM get right?", anchor=False)
     st.write(
         "Every human correction (confirm / relabel / delete / add) is logged. The "

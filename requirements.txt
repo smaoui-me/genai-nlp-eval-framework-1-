@@ -1,6 +1,12 @@
-pandas
-openai
-python-dotenv
-pyyaml
-tqdm
-scikit-learn
+# Runtime dependencies for the Streamlit product and evaluation utilities.
+# Versions are tested with the Python 3.11 image in Dockerfile.
+streamlit==1.60.0
+pandas==2.3.3
+pyarrow==24.0.0
+numpy==2.4.6
+plotly==6.9.0
+python-dotenv==1.2.2
+openai==2.52.0
+httpx==0.28.1
+pypdf==6.14.2
+PyYAML==6.0.3

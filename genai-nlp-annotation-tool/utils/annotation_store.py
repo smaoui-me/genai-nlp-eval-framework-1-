@@ -46,11 +46,16 @@ def init_session_state() -> None:
     st.session_state.setdefault("entities", [])
     st.session_state.setdefault("method_id", "few_shot_structured")
     st.session_state.setdefault("last_run_meta", None)
+    st.session_state.setdefault("routing_result", None)
+    st.session_state.setdefault("routing_approved_department", None)
     st.session_state.setdefault("exported_docs", [])
     # Bumped every time entities change from a button click (not from typing
     # in the table itself). We use it inside the data_editor's key so the
     # table always redraws with the latest data — see pages/1_annotate.py.
     st.session_state.setdefault("entities_version", 0)
+    # Which span the reviewer last clicked "jump to" on, so the text view
+    # can outline it and scroll to it.
+    st.session_state.setdefault("focus_span_id", None)
 
 
 def bump_entities_version() -> None:
@@ -64,8 +69,18 @@ def new_entity_id() -> str:
     return uuid.uuid4().hex[:8]
 
 
-def entities_to_dataframe(entities: list[dict]) -> pd.DataFrame:
-    """Turn our list of entity dicts into a table (DataFrame) for st.data_editor."""
+def entities_to_dataframe(
+    entities: list[dict],
+    sort_by_uncertainty: bool = True,
+    numbers: dict[str, int] | None = None,
+) -> pd.DataFrame:
+    """Turn our list of entity dicts into a table (DataFrame) for st.data_editor.
+
+    When `sort_by_uncertainty` is on, the least confident rows come first, so
+    a reviewer working top-down spends their attention where the model was
+    least sure. Rows with no confidence score sort first too, because "not
+    scored" is not the same as "certain".
+    """
     visible = [e for e in entities if e["status"] != "deleted"]
     if not visible:
         # An empty pd.DataFrame(columns=[...]) gives every column "object"
@@ -75,8 +90,11 @@ def entities_to_dataframe(entities: list[dict]) -> pd.DataFrame:
         # the app when it's serialized for display, so we set them by hand.
         return pd.DataFrame({
             "id": pd.Series(dtype="object"),
+            "jump": pd.Series(dtype="object"),
+            "num": pd.Series(dtype="int64"),
             "text": pd.Series(dtype="object"),
             "type": pd.Series(dtype="object"),
+            "confidence": pd.Series(dtype="float64"),
             "start": pd.Series(dtype="int64"),
             "end": pd.Series(dtype="int64"),
             "source": pd.Series(dtype="object"),
@@ -86,13 +104,29 @@ def entities_to_dataframe(entities: list[dict]) -> pd.DataFrame:
         })
 
     df = pd.DataFrame(visible)
+    # "#" ties each row to the same number printed on the highlight in the text.
+    numbers = numbers or {}
+    df["num"] = df["id"].map(numbers).fillna(0).astype("int64")
+    # A same-page link to the anchor render_highlighted_html() puts on each
+    # highlight. Streamlit's LinkColumn shows the number and makes it
+    # clickable, which is why there is no separate "jump" button row.
+    df["jump"] = "#span-" + df["id"].astype(str)
+    if "confidence" not in df.columns:
+        df["confidence"] = None
+    # float64 with NaN for "not scored" — Streamlit's ProgressColumn needs a
+    # real numeric dtype, and an object column of None/float would break it.
+    df["confidence"] = pd.to_numeric(df["confidence"], errors="coerce").astype("float64")
 
     # A friendly "who suggested this" column: the model name if the LLM
-    # suggested it, otherwise "human".
-    df["source"] = df.apply(
-        lambda row: row["model_name"] if row["source"] == "model" and row.get("model_name") else row["source"],
-        axis=1,
-    )
+    # suggested it, otherwise "human". model_name is stored as a full id like
+    # "hosted:gpt-5.4" so runs stay traceable, but the provider prefix is noise
+    # in a table of forty rows, so we show only the part after the colon.
+    def _who(row):
+        if row["source"] == "model" and row.get("model_name"):
+            return str(row["model_name"]).split(":", 1)[-1]
+        return row["source"]
+
+    df["source"] = df.apply(_who, axis=1)
 
     # A checkbox column showing/controlling whether each span has been
     # reviewed. "edited" also counts as reviewed (you can't relabel
@@ -100,7 +134,14 @@ def entities_to_dataframe(entities: list[dict]) -> pd.DataFrame:
     df["confirmed"] = df["status"].isin(["confirmed", "edited"])
     df["delete"] = False
 
-    return df[["id", "text", "type", "start", "end", "source", "status", "confirmed", "delete"]]
+    if sort_by_uncertainty:
+        # NaN (unscored) sorts first, then ascending confidence, then position.
+        df = df.sort_values(
+            by=["confidence", "start"], ascending=[True, True], na_position="first", kind="stable"
+        ).reset_index(drop=True)
+
+    return df[["id", "jump", "num", "text", "type", "confidence", "start", "end",
+               "source", "status", "confirmed", "delete"]]
 
 
 def apply_edits(entities: list[dict], edited_df: pd.DataFrame, labels: list[str]) -> list[dict]:
@@ -159,8 +200,38 @@ def add_manual_entity(entities: list[dict], text: str, entity_type: str, doc_tex
     return entities, None
 
 
-def render_highlighted_html(text: str, entities: list[dict], labels: list[str]) -> str:
-    """Build an HTML snippet showing `text` with each entity highlighted in its label's color."""
+def assign_span_numbers(entities: list[dict]) -> dict[str, int]:
+    """Number the visible spans 1, 2, 3... in the order they appear in the text.
+
+    The same number is printed next to the highlight and in the review table's
+    "#" column, so a reviewer can match a row to a place in the document at a
+    glance, without clicking anything.
+    """
+    visible = sorted((e for e in entities if e["status"] != "deleted"), key=lambda e: e["start"])
+    return {e["id"]: i + 1 for i, e in enumerate(visible)}
+
+
+def render_highlighted_html(
+    text: str,
+    entities: list[dict],
+    labels: list[str],
+    numbers: dict[str, int] | None = None,
+    focus_id: str | None = None,
+    flagged_ids: set[str] | None = None,
+) -> str:
+    """Build an HTML snippet showing `text` with each entity highlighted.
+
+    Args:
+        numbers: id -> the small number printed on the highlight, from
+            assign_span_numbers().
+        focus_id: the span the reviewer selected in the table. It gets a thicker
+            outline and an anchor the page scrolls to.
+        flagged_ids: spans the confidence score marked as needing review. They
+            get a warning dot so they stand out in the text as well as in the
+            table.
+    """
+    numbers = numbers or {}
+    flagged_ids = flagged_ids or set()
     visible = sorted((e for e in entities if e["status"] != "deleted"), key=lambda e: e["start"])
 
     pieces = []
@@ -174,11 +245,32 @@ def render_highlighted_html(text: str, entities: list[dict], labels: list[str]) 
 
         color = color_for_label(e["type"], labels)
         border = "2px dashed" if e["status"] == "pending" else "1px solid"  # dashed = still needs review
+        is_focus = e["id"] == focus_id
+        if is_focus:
+            # The selected row: strong outline plus a soft glow, so the eye
+            # lands on it after the page scrolls here.
+            border = "3px solid"
+            extra = f"box-shadow:0 0 0 4px {color}55; scroll-margin-top:20px;"
+        else:
+            extra = ""
+
+        num = numbers.get(e["id"])
+        num_html = (
+            f'<span style="font-size:0.62em;font-weight:700;color:{_darken(color)};'
+            f'vertical-align:super;margin-right:2px;">{num}</span>' if num else ""
+        )
+        warn = (
+            '<span title="flagged for review" style="font-size:0.7em;margin-left:3px;">&#9888;</span>'
+            if e["id"] in flagged_ids else ""
+        )
+
         pieces.append(
-            f'<mark style="background:{color}33;border:{border} {color};border-radius:5px;'
-            f'padding:1px 4px;margin:0 1px;">{_escape(text[start:end])}'
+            f'<mark id="span-{_escape(str(e["id"]))}" '
+            f'style="background:{color}33;border:{border} {color};border-radius:5px;'
+            f'padding:1px 4px;margin:0 1px;{extra}">{num_html}{_escape(text[start:end])}'
             f'<span style="font-size:0.68em;font-weight:700;color:{_darken(color)};'
-            f'text-transform:uppercase;margin-left:5px;letter-spacing:0.03em;">{_escape(e["type"])}</span></mark>'
+            f'text-transform:uppercase;margin-left:5px;letter-spacing:0.03em;">{_escape(e["type"])}</span>'
+            f'{warn}</mark>'
         )
         cursor = end
 
@@ -208,7 +300,16 @@ def _darken(hex_color: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def build_gold_export(doc_name: str, doc_text: str, labels: list[str], method_id: str, entities: list[dict]) -> dict:
+def build_gold_export(
+    doc_name: str,
+    doc_text: str,
+    labels: list[str],
+    method_id: str,
+    entities: list[dict],
+    run_meta: dict | None = None,
+    source_meta: dict | None = None,
+    classification: dict | None = None,
+) -> dict:
     """Package one document's reviewed entities into a dict, ready to save as JSON.
 
     "gold_entities" = the final, kept spans (the actual training/eval data).
@@ -221,7 +322,22 @@ def build_gold_export(doc_name: str, doc_text: str, labels: list[str], method_id
         "exported_at": datetime.now(timezone.utc).isoformat(),
         "method": method_id,
         "labels": labels,
+        "uncertainty": run_meta or {},
+        "source": source_meta or {},
+        "classification": classification or {},
         "text": doc_text,
+        # Immutable model output, kept separate from the human-corrected gold.
+        # This is what must be compared with hidden benchmark annotations.
+        "model_predictions": [
+            {
+                "text": e.get("original_text", e["text"]),
+                "type": e.get("original_type", e["type"]),
+                "start": e.get("original_start", e["start"]),
+                "end": e.get("original_end", e["end"]),
+                "model_name": e.get("model_name"),
+            }
+            for e in entities if e.get("source") == "model"
+        ],
         "gold_entities": [
             {
                 "text": e["text"], "type": e["type"], "start": e["start"], "end": e["end"],
@@ -233,6 +349,12 @@ def build_gold_export(doc_name: str, doc_text: str, labels: list[str], method_id
             {
                 "text": e["text"], "type": e["type"], "start": e["start"], "end": e["end"],
                 "source": e["source"], "model_name": e.get("model_name"), "status": e["status"],
+                # Keeping the confidence next to the outcome is the whole
+                # point: it lets us check afterwards whether low-confidence
+                # rows really were the ones the reviewer changed.
+                "confidence": e.get("confidence"),
+                "conf_source": e.get("conf_source"),
+                "voters": e.get("voters"),
             }
             for e in entities
         ],
@@ -273,7 +395,7 @@ def compute_annotation_metrics(export: dict) -> dict:
     human_added = sum(1 for e in log if e["source"] == "human")
 
     n_model = len(model_spans)
-    return {
+    metrics = {
         "total_gold_entities": len(export.get("gold_entities", [])),
         "model_suggested": n_model,
         "confirmed_as_is": confirmed,
@@ -283,4 +405,61 @@ def compute_annotation_metrics(export: dict) -> dict:
         "acceptance_rate": round(confirmed / n_model, 3) if n_model else None,
         "edit_rate": round(edited / n_model, 3) if n_model else None,
         "deletion_rate": round(deleted / n_model, 3) if n_model else None,
+    }
+    metrics.update(compute_confidence_diagnostics(model_spans))
+    return metrics
+
+
+def compute_confidence_diagnostics(model_spans: list[dict], threshold: float = 0.75) -> dict:
+    """Check whether the confidence score was actually worth computing.
+
+    This is the honest test of the whole uncertainty feature. A confidence
+    score is only useful if the spans it flags are the ones the human ends up
+    changing. So we split the model's suggestions into flagged (below the
+    threshold) and not flagged, and compare how often each group was touched.
+
+    - `flag_precision`: of the rows we flagged, how many did the human change?
+    - `flag_recall`: of the rows the human changed, how many had we flagged?
+    - `lift`: how much more likely a flagged row was to be changed than an
+      unflagged one. A lift near 1.0 means the score is not telling us
+      anything and the extra LLM calls were wasted.
+    """
+    scored = [e for e in model_spans if isinstance(e.get("confidence"), (int, float))]
+    if not scored:
+        return {"confidence_available": False}
+
+    def changed(e: dict) -> bool:
+        return e.get("status") in ("edited", "deleted")
+
+    flagged = [e for e in scored if e["confidence"] < threshold]
+    unflagged = [e for e in scored if e["confidence"] >= threshold]
+    changed_all = [e for e in scored if changed(e)]
+    changed_flagged = [e for e in flagged if changed(e)]
+
+    rate_flagged = (len(changed_flagged) / len(flagged)) if flagged else None
+    rate_unflagged = (
+        (sum(1 for e in unflagged if changed(e)) / len(unflagged)) if unflagged else None
+    )
+
+    lift = None
+    if rate_flagged is not None and rate_unflagged:
+        lift = round(rate_flagged / rate_unflagged, 2)
+    elif rate_flagged and rate_unflagged == 0:
+        lift = float("inf")  # every change was in the flagged group
+
+    return {
+        "confidence_available": True,
+        "threshold": threshold,
+        "n_scored": len(scored),
+        "n_flagged": len(flagged),
+        "share_flagged": round(len(flagged) / len(scored), 3),
+        "n_changed": len(changed_all),
+        "flag_precision": round(rate_flagged, 3) if rate_flagged is not None else None,
+        "flag_recall": (
+            round(len(changed_flagged) / len(changed_all), 3) if changed_all else None
+        ),
+        "change_rate_flagged": round(rate_flagged, 3) if rate_flagged is not None else None,
+        "change_rate_unflagged": round(rate_unflagged, 3) if rate_unflagged is not None else None,
+        "lift": lift,
+        "mean_confidence": round(sum(e["confidence"] for e in scored) / len(scored), 3),
     }

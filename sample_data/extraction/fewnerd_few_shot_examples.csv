@@ -1,0 +1,4 @@
+id,tokens,ner_tags
+demo-1,"[""The"",""conference"",""was"",""held"",""in"",""Berlin"","".""]","[0,0,0,0,0,4,0]"
+demo-2,"[""She"",""traveled"",""from"",""New"",""York"",""to"",""Boston"","".""]","[0,0,0,4,4,0,4,0]"
+demo-3,"[""Mount"",""Everest"",""lies"",""in"",""Nepal"","".""]","[4,4,0,0,4,0]"

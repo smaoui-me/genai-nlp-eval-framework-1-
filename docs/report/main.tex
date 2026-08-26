@@ -1,0 +1,110 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Evaluating GenAI-Based Information Extraction and Classification
+% NLP Lab SoSe 2026 — Technical University of Munich
+% Team 38: Amine Smaoui, Ismail Ege Oguz, Robert Pham
+% Industry partner: Carl Zeiss AG (Dr. Georg Dietrich, Dr. Maximilian Wich)
+%
+% BUILD:  latexmk -pdf main.tex (requires Perl), or pdflatex -> bibtex -> pdflatex x2
+% STYLE:  layout lives in tumpaper.sty; content lives in sections/*.tex
+% REFS:   add entries to references.bib, cite with \citep{key} / \citet{key}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Two-column, 10 pt: the conference-paper format the 8-page limit assumes.
+% For a single-column version (e.g. a thesis chapter), remove `twocolumn` here
+% and switch the starred floats in the section files back to unstarred.
+\documentclass[
+    fontsize=10pt,
+    a4paper,
+    twoside=false,
+    twocolumn,
+    numbers=noendperiod
+]{scrartcl}
+
+\usepackage{tumpaper}  % all layout, colors, packages — see tumpaper.sty
+
+% Running head (appears in the page header from page 2 onward; page 1 carries
+% the title block instead, so the header is suppressed there).
+\setrunningtitle{Evaluation and Human-in-the-Loop Annotation with GenAI}
+\setrunningauthor{Amine Smaoui, Ismail Ege Oguz, Robert Pham}
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TITLE BLOCK — spans both columns at the top of page 1
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\twocolumn[\begin{tumtitleblock}
+
+% The logo sits flush with the right text margin, on the same baseline block as
+% the rule underneath it, so the two right edges line up exactly.
+\vspace*{-6mm}
+\noindent\hfill{\includegraphics[height=11mm]{figures/tum_logo.pdf}}
+
+\vspace{2.5mm}
+\noindent{\color{TUMBlue}\rule{\textwidth}{1pt}}
+
+\vspace{3mm}
+\noindent{\raggedright\sffamily
+{\fontsize{18pt}{21pt}\selectfont\bfseries\color{TUMBlue}
+Evaluation and Human-in-the-Loop Annotation\\Using GenAI Approaches\par}
+
+\vspace{2mm}
+{\fontsize{12pt}{14pt}\selectfont\color{TUMDarkBlue}
+A Reproducible Framework for Classification, Document-Scale Extraction,
+and Reviewed Gold Data\par}
+}
+
+\vspace{2.5mm}
+\noindent{\color{TUMBlue}\rule{\textwidth}{0.5pt}}
+
+\vspace{4mm}
+\noindent{\raggedright\sffamily
+{\bfseries Amine Smaoui \;\textperiodcentered\; Ismail Ege Oguz \;\textperiodcentered\; Robert Pham\par}
+\vspace{1.2mm}
+{\small School of Computation, Information and Technology,
+Technical University of Munich\par}
+\vspace{0.6mm}
+{\small NLP Lab, Summer Semester 2026. Supervised by Dr.\ Georg Dietrich and
+Dr.\ Maximilian Wich, Carl Zeiss AG.\par}
+}
+
+\vspace{5mm}
+\input{sections/00_abstract}
+\vspace{3mm}
+
+\end{tumtitleblock}]
+
+% No running header on page 1: the title block already identifies the paper.
+\thispagestyle{plain}
+
+% Set \showtoc to 1 while drafting to get a table of contents; keep it at 0 for
+% the 8-page submission version.
+\newcommand{\showtoc}{0}
+\ifnum\showtoc=1 \tableofcontents\clearpage \fi
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% BODY
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{sections/01_introduction}      % motivation, the three workflows, contributions
+\input{sections/02_related_work}      % state of the art + thematic literature analysis
+\input{sections/03_problem}           % problem statement, research questions, hypotheses
+\input{sections/04_methodology}       % how we address the questions
+\input{sections/05_data}              % datasets and their properties
+\input{sections/06_architecture}      % system architecture and solution design
+\input{sections/07_results}           % quantitative results
+\input{sections/08_discussion}        % interpretation + limitations
+\input{sections/11_conclusion}        % conclusion + outlook
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% BACK MATTER
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{sections/90_statements}        % artifact availability
+
+% No \clearpage here on purpose: it used to leave the last body page with a
+% full left column and an empty right one. Letting the references flow on
+% directly keeps both columns filled.
+% abbrvnat over plainnat: abbreviated first names save roughly a fifth of the
+% bibliography, which is half a page at this length.
+\bibliographystyle{IEEEtranN}
+\bibliography{references}
+
+\end{document}

@@ -10,7 +10,7 @@ llm:
     retry_sleep_seconds: 2
 
 dataset:
-    input_path: data/extraction/processed/fewnerd_location_test_500.csv
+    input_path: data/extraction/processed/fewnerd_location_test_1000.csv
     labels_path: null
 
 debug:

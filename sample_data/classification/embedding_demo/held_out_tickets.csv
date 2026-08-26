@@ -1,0 +1,13 @@
+ticket_id,text,gold_type,gold_queue,gold_tags
+TEST-001,"All branch users lost network access after the VPN concentrator failed this morning.",Incident,Technical Support,"[""VPN"",""Network"",""Outage"",""Disruption""]"
+TEST-002,"The inventory software closes immediately whenever I open the reporting page.",Incident,Technical Support,"[""Software"",""Disruption""]"
+TEST-003,"Set up remote VPN access on the laptop assigned to our new analyst.",Request,Technical Support,"[""VPN"",""Access"",""Hardware""]"
+TEST-004,"The latest invoice contains a duplicate charge for the same support plan.",Incident,Billing and Payments,"[""Billing"",""Invoice""]"
+TEST-005,"Return the payment for the subscription period that was billed after cancellation.",Request,Billing and Payments,"[""Billing"",""Refund"",""Subscription""]"
+TEST-006,"Change our monthly subscription to the basic tier before the next invoice.",Change,Billing and Payments,"[""Subscription"",""Billing"",""Invoice""]"
+TEST-007,"My employee account became locked and the current password is not accepted.",Incident,IT Support,"[""Account"",""Access"",""Password""]"
+TEST-008,"Replace the damaged keyboard and failing battery in my company laptop.",Request,IT Support,"[""Hardware""]"
+TEST-009,"Update my account to use the new corporate email address.",Change,IT Support,"[""Email"",""Account""]"
+TEST-010,"The tracking page says delivered although my customer order is still missing.",Incident,Customer Service,"[""Delivery"",""Order""]"
+TEST-011,"Cancel order 9150 because it has not yet shipped.",Request,Customer Service,"[""Order""]"
+TEST-012,"Correct the delivery address on my order before dispatch.",Change,Customer Service,"[""Delivery"",""Order""]"

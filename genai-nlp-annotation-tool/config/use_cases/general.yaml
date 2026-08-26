@@ -1,0 +1,17 @@
+name: General document extraction
+description: Start with common named entities and customize the schema for a new domain.
+entity_labels:
+  - person
+  - organization
+  - location
+  - product
+label_definitions:
+  person: A named individual person.
+  organization: A named company, institution, team, or public organization.
+  location: A named geographic place, address, city, region, or country.
+  product: A named product, service, platform, or application.
+domain_guidance: Extract only information explicitly stated in the document.
+routing:
+  enabled_by_default: false
+  departments: []
+  guidance: Choose a destination only when the document provides enough evidence.

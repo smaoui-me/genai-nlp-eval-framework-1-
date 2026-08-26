@@ -1,0 +1,34 @@
+% ============================================================================
+% ABSTRACT + KEYWORDS  —  owner: TBD  —  ~220 words
+% Formula: context -> gap -> what we did -> what we found -> what it means.
+% ============================================================================
+\begin{abstract}
+\noindent
+Large language models (LLMs) make information extraction and ticket
+classification available without task-specific training, but useful deployment
+still requires evidence on the target data and an efficient way to create that
+evidence. We present a reproducible evaluation framework and a configurable
+human-in-the-loop annotation application. The framework preserves raw model
+responses, validates spans and labels, and reports strict and reviewer-oriented
+metrics. The application suggests a schema-derived prompt, pre-annotates text,
+PDF, or CSV input, supports optional department routing through either an
+editable LLM prompt or a local embedding vote over reviewed tickets, records
+every reviewer correction, and exports traceable gold JSON. On a fresh
+held-out sample of 20
+SciREX papers, four-type scientific mention extraction reached $57.38\%$
+strict $F_1$ (document-bootstrap 95\% interval $53.56$--$60.73$), $67.36\%$
+boundary-tolerant $F_1$, and $70.30\%$ same-label overlap $F_1$. A completed
+100-paper full-window operational run processed 8{,}373 sentences and 9{,}901
+gold mentions with no failed document, achieving $54.09\%$ strict and
+$66.22\%$ overlap $F_1$. Earlier baselines show $79.32\%$ strict $F_1$ for
+single-type Few-NERD extraction and $72.6\%$ type accuracy but only $42.2\%$
+queue accuracy on synthetic support tickets. The results show that exact span
+quality, label semantics, and target-domain evaluation matter more than output
+validity alone, and that LLM predictions should remain reviewer suggestions
+rather than ground truth.
+\end{abstract}
+
+\noindent\textbf{Keywords:} information extraction; text classification;
+large language models; long documents; evaluation framework;
+human-in-the-loop annotation; reproducibility
+\vspace{4mm}

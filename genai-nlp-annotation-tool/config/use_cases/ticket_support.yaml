@@ -1,0 +1,38 @@
+name: Internal support tickets
+description: Extract operational facts from a ticket and optionally suggest its destination department.
+entity_labels:
+  - Product
+  - Issue
+  - ErrorCode
+  - Customer
+  - Account
+  - Date
+  - Priority
+  - RequestedAction
+label_definitions:
+  Product: A named product, service, application, feature, device, or platform involved in the ticket.
+  Issue: The explicit fault, symptom, failure, complaint, or service problem reported by the requester.
+  ErrorCode: An exact error identifier, status code, alert code, or diagnostic message.
+  Customer: The named requester, customer, company, or affected user group.
+  Account: An account number, subscription, tenant, order, invoice, contract, or other business identifier.
+  Date: A date, time, deadline, duration, or time period relevant to the ticket.
+  Priority: An explicit urgency, severity, impact level, or service-priority statement.
+  RequestedAction: The concrete action, resolution, change, refund, access, or assistance requested.
+domain_guidance: >-
+  Preserve exact identifiers and error messages. Do not invent a root cause, priority, customer,
+  or requested action when the ticket does not state one.
+routing:
+  enabled_by_default: true
+  departments:
+    - Billing and Payments
+    - Customer Service
+    - Human Resources
+    - IT Support
+    - Product Support
+    - Returns and Exchanges
+    - Sales and Pre-Sales
+    - Service Outages and Maintenance
+    - Technical Support
+  guidance: >-
+    Route using the primary action needed to resolve the ticket, not merely a product name.
+    Prefer one department and quote the evidence that justifies it.
