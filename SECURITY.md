@@ -2,9 +2,10 @@
 
 ## Supported scope
 
-This repository is research software. The current Docker distribution is a
-single-instance application and does not provide authentication, authorization,
-tenant isolation, encrypted storage, or centralized audit retention.
+The current Docker distribution is a single-instance application for local
+evaluation and controlled pilots. It does not provide authentication,
+authorization, tenant isolation, encrypted storage, or centralized audit
+retention.
 
 Do not expose it directly to the public internet or use it with confidential
 data without adding the controls required by your organization.

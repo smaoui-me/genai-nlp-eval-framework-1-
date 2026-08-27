@@ -1,5 +1,5 @@
 {
-  "name": "Annotation and Ticket Routing",
+  "name": "GenAI Annotation Studio",
   "image": "mcr.microsoft.com/devcontainers/python:1-3.11-bookworm",
   "postCreateCommand": "python -m pip install --disable-pip-version-check -r requirements-dev.txt",
   "postStartCommand": "bash .devcontainer/start-app.sh",
@@ -18,7 +18,7 @@
   "forwardPorts": [8501],
   "portsAttributes": {
     "8501": {
-      "label": "Annotation product",
+      "label": "GenAI Annotation Studio",
       "onAutoForward": "openPreview"
     }
   }

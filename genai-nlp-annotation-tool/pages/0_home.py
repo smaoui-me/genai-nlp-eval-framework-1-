@@ -37,7 +37,7 @@ def _demo_entities() -> list[dict]:
     return entities
 
 
-st.title(":material/edit_note: Annotation tool")
+st.title(":material/edit_note: GenAI Annotation Studio")
 st.caption("Configurable extraction, optional ticket routing, human review, and reusable gold data")
 
 if is_configured():

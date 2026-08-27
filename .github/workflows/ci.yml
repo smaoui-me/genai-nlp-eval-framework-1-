@@ -13,10 +13,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build test image
-        run: docker build --target test -t genai-nlp-eval-framework:test .
+        run: docker build --target test -t genai-annotation-studio:test .
       - name: Run network-free tests
-        run: docker run --rm genai-nlp-eval-framework:test
+        run: docker run --rm genai-annotation-studio:test
       - name: Build runtime image
-        run: docker build --target runtime -t genai-nlp-annotation-tool:ci .
+        run: docker build --target runtime -t genai-annotation-studio:ci .
       - name: Build evaluation image
-        run: docker build --target evaluation -t genai-nlp-eval-framework:ci .
+        run: docker build --target evaluation -t genai-annotation-eval:ci .

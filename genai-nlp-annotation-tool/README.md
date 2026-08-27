@@ -1,4 +1,4 @@
-# Annotation product
+# GenAI Annotation Studio
 
 This directory contains the Streamlit human-in-the-loop annotation product.
 Run it from the repository root with Docker Compose; the canonical setup and

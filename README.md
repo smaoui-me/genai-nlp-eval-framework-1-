@@ -1,97 +1,122 @@
-# GenAI NLP Evaluation and Annotation Framework
+# GenAI Annotation Studio
 
-A reproducible framework for evaluating LLM-based classification and entity
-extraction, generating pre-annotations, reviewing model suggestions, and
-exporting traceable gold data.
+[![CI](https://github.com/smaoui-me/genai-nlp-eval-framework-1-/actions/workflows/ci.yml/badge.svg)](https://github.com/smaoui-me/genai-nlp-eval-framework-1-/actions/workflows/ci.yml)
+[![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.60-FF4B4B.svg?logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-The repository contains two connected components:
+A configurable human-in-the-loop application for LLM-assisted entity
+extraction, ticket routing, annotation review, and traceable gold-data export.
+It combines an interactive Streamlit product with reproducible evaluation
+utilities for measuring model quality before deployment.
 
-- A Streamlit annotation product for configurable extraction, optional ticket
-  routing, human review, and reviewed JSON export.
-- Offline evaluation pipelines for ticket classification, Few-NERD extraction,
-  and long-document SciREX experiments.
+![Annotation review interface](docs/assets/annotation-review.png)
 
-The product is research software. It does not yet provide authentication,
-role-based access, a central database, work queues, or multi-tenant isolation.
+## Why this project exists
 
-## Start the annotation product
+LLMs can generate plausible annotations, but plausible output is not ground
+truth. GenAI Annotation Studio keeps model suggestions separate from human
+decisions, records every correction, and exports both prediction provenance and
+reviewed labels. Teams can adapt the same workflow to support tickets,
+scientific documents, or another text domain without changing application code.
 
-Requirements: Docker Engine and Docker Compose v2.
+## Features
+
+- **Configurable extraction:** define labels, descriptions, and domain guidance
+  in reusable YAML files.
+- **Editable prompting:** inspect and modify the generated extraction and
+  classification prompts before inference.
+- **Flexible input:** annotate pasted text, TXT, PDF, or a mapped CSV row.
+- **Two routing strategies:** choose an LLM classifier or a local
+  similarity-weighted embedding classifier built from reviewed examples.
+- **Human review:** confirm, relabel, delete, resize, or add entity spans and
+  approve or correct routing decisions.
+- **Auditable exports:** preserve raw predictions, final gold entities, prompt
+  hashes, token usage, model metadata, and review history in JSON.
+- **Document-scale execution:** process complete documents sentence by sentence
+  with stable document offsets and restartable batch evaluation.
+- **Reproducible validation:** run network-free tests and benchmark extraction
+  or classification independently from inference.
+
+## Quick start
+
+Requirements: Docker Engine with Docker Compose v2.
 
 ```bash
 cp .env.example .env
+# Add your hosted LLM settings to .env, or use the local Ollama option.
 docker compose up --build
 ```
 
-Open <http://localhost:8501>. The interface can be inspected without an LLM.
-Pre-annotation and routing are enabled after a hosted OpenAI-compatible endpoint
-or local Ollama model is configured in `.env`.
+Open <http://localhost:8501>. The interface works without credentials; LLM
+actions are enabled after a hosted OpenAI-compatible endpoint or local Ollama
+model is configured.
 
-Reviewed exports are stored outside the image at
-`genai-nlp-annotation-tool/data/gold_exports/`.
+Reviewed exports are persisted at:
 
-See [QUICKSTART.md](QUICKSTART.md) for the complete walkthrough.
-For an end-to-end verification of every method, including synthetic embedding
-data and expected outputs, follow [docs/TESTING.md](docs/TESTING.md).
+```text
+genai-nlp-annotation-tool/data/gold_exports/
+```
 
-## Use the product with another domain
+See [QUICKSTART.md](QUICKSTART.md) for the complete walkthrough and
+[docs/TESTING.md](docs/TESTING.md) for end-to-end validation.
 
-1. Copy a YAML template under
+## Typical workflow
+
+```text
+Text / PDF / CSV
+       |
+       v
+Optional routing ------> LLM prompt or local embedding index
+       |
+       v
+LLM entity suggestions
+       |
+       v
+Human confirmation and correction
+       |
+       v
+Reviewed JSON + provenance + evaluation data
+```
+
+Uploaded raw text does not contain hidden gold labels. Gold data is created
+only through reviewer approval or imported from an independently annotated
+benchmark.
+
+## Use your own domain
+
+1. Copy a template under
    `genai-nlp-annotation-tool/config/use_cases/`.
-2. Define the entity labels, label descriptions, domain instructions, and
-   optional routing departments.
+2. Define the use-case name, entity labels, label definitions, domain guidance,
+   and optional routing departments.
 3. Restart the application and select the new use case.
-4. Inspect and edit the generated prompt before inference.
-5. Review every suggested span before treating the export as gold data.
+4. Inspect the generated prompt, run pre-annotation, and review every suggestion.
 
 No Python changes are required for a new extraction schema.
 
-## Validate the repository in Docker
+## Local embedding routing
+
+The local classifier embeds the current ticket, retrieves similar reviewed
+tickets, and applies a similarity-weighted department vote. It does not train or
+fine-tune a model and makes no routing LLM call. The export records the encoder,
+reference-data hash, neighbors, similarities, confidence, prediction, and human
+decision.
+
+Use the synthetic reference set in
+`sample_data/classification/embedding_demo/` for a first run. For a real use
+case, keep reference, development, and held-out test data separate to prevent
+leakage. The complete workflow is documented in
+[docs/classification/EMBEDDING_RETRIEVAL.md](docs/classification/EMBEDDING_RETRIEVAL.md).
+
+## Run tests
+
+The default test suite does not call external models:
 
 ```bash
 docker compose --profile test run --rm test
-docker compose up --build -d
-docker compose ps
-docker compose down
 ```
 
-The first command builds the dedicated test target and runs the network-free
-test suite. By default, the application uses `runtime-embeddings`, which supports
-both LLM and local embedding routing. Set `ANNOTATION_TARGET=runtime` in `.env`
-only when a smaller LLM-only image is preferred.
-
-## Repository structure
-
-| Path | Purpose |
-|---|---|
-| `genai-nlp-annotation-tool/` | Streamlit product, domain templates, prompts, and product tests |
-| `src/genai_eval/` | Reusable evaluation and preprocessing modules |
-| `scripts/` | Reproducible classification, extraction, and SciREX entry points |
-| `configs/` and `prompts/` | Versioned experiment definitions |
-| `data/` | Compact public fixtures, cleaned evaluation tables, and provenance metadata |
-| `eval/corpora/` | Frozen SciREX study manifests |
-| `docs/annotation/` | Study protocols and completed evaluation summaries |
-| `docs/report/` | LaTeX source and compiled scientific report |
-| `tests/` | Framework and container-distribution tests |
-
-Large raw datasets and generated prediction files are intentionally excluded
-from ordinary Git. See [data/README.md](data/README.md) for sources, licenses,
-and reconstruction commands. Runtime output conventions are documented in
-[results/README.md](results/README.md).
-
-## Offline evaluation
-
-The full evaluation environment is also available through Compose. Local
-`data/`, `eval/`, and `results/` directories are mounted into the container, so
-large datasets and generated outputs remain outside the image:
-
-```bash
-docker compose --profile tools build evaluation
-docker compose --profile tools run --rm evaluation \
-  python scripts/annotation/check_scirex_study_readiness.py
-```
-
-To work outside Docker, install the runtime and development dependencies:
+For local Python development:
 
 ```bash
 python -m venv .venv
@@ -99,43 +124,51 @@ python -m pip install -r requirements-dev.txt
 python -m pytest -q
 ```
 
-Representative entry points:
+## Optional evaluation pipelines
+
+The repository retains reproducible extraction and classification benchmarks as
+supporting infrastructure. They are not required to run the annotation product.
 
 ```bash
-python scripts/classification/run_ticket_classification_with_evidence.py --method zero_shot --limit 1
-python scripts/extraction/run_few_shot_structured.py --limit 10
-python scripts/annotation/check_scirex_study_readiness.py
+docker compose --profile tools build evaluation
+docker compose --profile tools run --rm evaluation \
+  python scripts/annotation/check_scirex_study_readiness.py
 ```
 
-The app can also route tickets directly with a local similarity-weighted vote
-over reviewed examples. The offline `embedding_rag` experiment uses those
-examples as dynamic few-shot context for an LLM. Both require the larger
-PyTorch-based dependency stack. See
-[docs/classification/EMBEDDING_RETRIEVAL.md](docs/classification/EMBEDDING_RETRIEVAL.md)
-for the data contract, leakage-safe split, index build, evaluation, and
-prediction-only workflow.
+SciREX demonstrates document-scale extraction and checkpoint recovery;
+Few-NERD provides token-level extraction fixtures; synthetic support tickets
+exercise classification and evidence validation. Dataset sources, licenses, and
+reconstruction commands are documented in [data/README.md](data/README.md).
 
-LLM runs require the variables shown in `.env.example`. Tests do not make
-network calls.
+## Project structure
 
-## Research artifacts
+| Path | Purpose |
+|---|---|
+| `genai-nlp-annotation-tool/` | Streamlit application, use-case templates, and product tests |
+| `src/genai_eval/` | Reusable preprocessing, retrieval, and evaluation modules |
+| `sample_data/` | Synthetic examples for safe local testing |
+| `configs/` and `prompts/` | Versioned evaluation configurations and prompts |
+| `scripts/` | Reproducible extraction, classification, and dataset utilities |
+| `docs/` | Testing, benchmark, embedding, and product-feedback guides |
+| `tests/` | Network-free framework and container tests |
 
-The completed report is available as
-[NLP_Lab_Project_Report.pdf](NLP_Lab_Project_Report.pdf). Its LaTeX source is
-kept under [`docs/report/`](docs/report/). The retained study documentation
-distinguishes prompt-development results, held-out evaluation, and the
-100-paper operational run. The configured 1,000-window SciREX run is prepared
-but is not presented as a completed experiment.
+## Current scope
 
-## Security and privacy
+This is a single-instance application intended for local evaluation and
+controlled pilots. It does not yet include authentication, role-based access,
+concurrent task assignment, a central database, or tenant isolation. Do not
+expose it directly to the public internet or submit confidential data to an
+unapproved model endpoint. See [SECURITY.md](SECURITY.md).
 
-Do not send confidential tickets or documents to an endpoint that has not been
-approved for the relevant data. Secrets are loaded at runtime and are excluded
-from Git and the Docker build context. See [SECURITY.md](SECURITY.md).
+Planned production work includes persistent projects, user roles, assignment
+queues, privacy controls, and a human study measuring annotation time, reviewer
+agreement, and final annotation quality.
 
-## Contributing and license
+## Contributing
 
-Development and validation guidance is in
-[CONTRIBUTING.md](CONTRIBUTING.md). Repository code is released under the MIT
-License. Third-party datasets retain their own licenses; see
-[data/README.md](data/README.md).
+Contributions and reproducible bug reports are welcome. See
+[CONTRIBUTING.md](CONTRIBUTING.md) and the
+[product feedback template](docs/PRODUCT_FEEDBACK.md).
+
+Released under the [MIT License](LICENSE). Third-party datasets retain their
+original licenses.

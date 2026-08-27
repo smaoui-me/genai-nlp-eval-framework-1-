@@ -1,4 +1,4 @@
-# Annotation product quickstart
+# GenAI Annotation Studio quickstart
 
 This repository provides a reusable human-in-the-loop product, not only the
 SciREX experiment. It accepts text, PDF, or a selected CSV ticket; optionally
@@ -36,8 +36,8 @@ Reviewed exports are persisted on the host under
 Build and run the same image directly:
 
 ```bash
-docker build --target runtime -t genai-nlp-annotation-tool:local .
-docker run --rm -p 8501:8501 --env-file .env genai-nlp-annotation-tool:local
+docker build --target runtime -t genai-annotation-studio:local .
+docker run --rm -p 8501:8501 --env-file .env genai-annotation-studio:local
 ```
 
 For Ollama running on the Docker host, set

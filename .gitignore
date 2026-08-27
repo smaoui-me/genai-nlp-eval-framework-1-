@@ -41,17 +41,6 @@ htmlcov/
 /data/classification/retrieval/*
 !/data/classification/retrieval/README.md
 
-# LaTeX build products; the reviewed PDF remains versioned.
-*.aux
-*.bbl
-*.blg
-*.brf
-*.fls
-*.fdb_latexmk
-*.log
-*.out
-*.synctex.gz
-
 # Editor and operating-system files
 .DS_Store
 Thumbs.db

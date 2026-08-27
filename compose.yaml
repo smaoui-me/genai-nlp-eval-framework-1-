@@ -1,9 +1,11 @@
+name: genai-annotation-studio
+
 services:
   annotation-tool:
     build:
       context: .
       target: "${ANNOTATION_TARGET:-runtime-embeddings}"
-    image: genai-nlp-annotation-tool:local
+    image: genai-annotation-studio:local
     init: true
     ports:
       - "${APP_PORT:-8501}:8501"
@@ -27,7 +29,7 @@ services:
     build:
       context: .
       target: evaluation
-    image: genai-nlp-eval-framework:local
+    image: genai-annotation-eval:local
     environment:
       LLM_ENDPOINT: "${LLM_ENDPOINT:-}"
       LLM_API_KEY: "${LLM_API_KEY:-}"
@@ -42,7 +44,7 @@ services:
     build:
       context: .
       target: test
-    image: genai-nlp-eval-framework:test
+    image: genai-annotation-studio:test
     environment:
       LLM_ENDPOINT: ""
       LLM_API_KEY: ""
@@ -54,7 +56,7 @@ services:
     build:
       context: .
       target: embeddings
-    image: genai-nlp-eval-framework:embeddings
+    image: genai-annotation-eval:embeddings
     environment:
       LLM_ENDPOINT: "${LLM_ENDPOINT:-}"
       LLM_API_KEY: "${LLM_API_KEY:-}"

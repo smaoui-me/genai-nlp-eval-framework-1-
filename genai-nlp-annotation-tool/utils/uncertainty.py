@@ -6,9 +6,8 @@ How sure was the model about each entity it suggested?
 The first version of the review screen showed every suggested span and asked
 the reviewer to confirm each one. That works on a three-sentence demo. On a
 real 15-line ticket it can be forty spans, and a reviewer who has to click
-through forty plausible-looking rows stops reading them properly. Feedback
-from our poster session put this plainly: the tool needs to say *which* rows
-are worth looking at.
+through forty plausible-looking rows stops reading them properly. The review
+workflow therefore needs to identify which rows deserve the most attention.
 
 That is a well-studied idea. Uncertainty sampling, i.e. spending the human's
 time where the model is least sure, is the oldest trick in active learning,

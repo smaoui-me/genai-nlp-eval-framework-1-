@@ -25,9 +25,9 @@ python -m pytest -q
 - Do not report an experiment without retained predictions and scores.
 - Keep prompt-development and held-out evaluation data separate by `doc_id`.
 - Preserve immutable model output and reviewer history in annotation exports.
-- Use scientific American English in report and study documentation.
+- Use clear American English in user-facing and technical documentation.
 - Do not add secrets, raw organizational data, generated result directories,
-  virtual environments, or LaTeX auxiliary files.
+  or virtual environments.
 
 ## Pull requests
 

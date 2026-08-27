@@ -14,7 +14,7 @@ from utils.labels import DEFAULT_LABELS
 
 # Controls the browser tab: title, icon, and full-width ("wide") layout.
 # Must be the very first Streamlit command in the file.
-st.set_page_config(page_title="NLP Annotation Tool", page_icon=":material/edit_note:", layout="wide")
+st.set_page_config(page_title="GenAI Annotation Studio", page_icon=":material/edit_note:", layout="wide")
 
 # Set up st.session_state (see utils/annotation_store.py) before any page
 # runs, so every page can rely on these values already existing.

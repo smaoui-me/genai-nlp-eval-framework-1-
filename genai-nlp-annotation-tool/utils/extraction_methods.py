@@ -9,9 +9,8 @@ Four methods are offered — really just four ways of asking the same thing:
   for plain text lines (`Munich | location | 6 | 6`); structured asks for
   JSON (`{"entities": [...]}`), which is stricter and easier to parse.
 
-Adapted from the single-label version in
-https://github.com/smaoui-me/genai-nlp-eval-framework-1-, generalized here
-to support any labels the user picks.
+The extraction pipeline supports arbitrary labels selected by the user rather
+than assuming a fixed, single-label task.
 
 Pipeline for one sentence: build a prompt -> call_llm() -> parse the reply
 -> check it's valid -> convert the model's word-position answer into
